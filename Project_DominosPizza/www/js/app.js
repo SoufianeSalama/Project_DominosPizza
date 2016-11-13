@@ -15,6 +15,10 @@ angular.module('starter', ['ionic'])
     .state('scanner',{
       url:'/scanner',
       templateUrl:'templates/scanner.html'
+    })
+     .state('hulp',{
+      url:'/hulp',
+      templateUrl:'templates/hulp.html'
     });
 
     $urlRouterProvider.otherwise('/home');
