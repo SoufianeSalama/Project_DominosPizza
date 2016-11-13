@@ -19,7 +19,8 @@ applicatie.config(function($stateProvider, $urlRouterProvider){
     })
      .state('hulp',{
       url:'/hulp',
-      templateUrl:'templates/hulp.html'
+      templateUrl:'templates/hulp.html',
+      controller :'HulpCtrl'
     })
      .state('levering',{
       url:'/levering',
@@ -119,8 +120,8 @@ applicatie.controller("LeveringCtrl", function($scope){
       {"title" : "Chickenito's + BBQ saus"},
       {"title" : "Pasta Rossa"},
       {"title" : "Box Chicken + Chili saus"},
-      {"title" : "1.5L Fanta"},
-];
+      {"title" : "1.5L Fanta"}
+    ];
     
 });
 
@@ -142,6 +143,32 @@ applicatie.controller("MapCtrl", function($scope, $cordovaGeolocation){
  
     var mapObject = new google.maps.Map(document.getElementById("map"), mapOptions);
     $scope.map = mapObject;
+
+
+    var directionsService = new google.maps.DirectionsService();
+          var directionsRequest = {
+            origin: new google.maps.LatLng(position.coords.latitude, position.coords.longitude),
+            destination: new google.maps.LatLng(50.932459, 5.350911),
+            travelMode: google.maps.DirectionsTravelMode.DRIVING,
+            unitSystem: google.maps.UnitSystem.METRIC
+          };
+          directionsService.route(
+            directionsRequest,
+            function(response, status)
+            {
+              if (status == google.maps.DirectionsStatus.OK)
+              {
+                new google.maps.DirectionsRenderer({
+                  map: mapObject,
+                  directions: response,
+                  suppressMarkers:true
+                });
+              }
+              else
+                $("#error").append("Unable to retrieve your route<br />");
+            }
+          );
+
 
     var shopIconUrl = "img/logoSmall.png";
     var positionIconUrl="img/deliveryIcon.png";
@@ -170,10 +197,55 @@ applicatie.controller("MapCtrl", function($scope, $cordovaGeolocation){
     alert.log("Uw locatie niet gevonden!");
   });
 
-  
-  
-  
 
-           
+});
+
+//  Controller voor de LEVERING pagina
+applicatie.controller("HulpCtrl", function($scope, $cordovaGeolocation, $ionicPopup){
+
+    $scope.getLocation = function(){
+
+        var options = {timeout: 10000, enableHighAccuracy: true};
+ 
+        $cordovaGeolocation.getCurrentPosition(options).then(function(position){
+          
+            var geocoder = new google.maps.Geocoder;
+            var latlng = {lat: position.coords.latitude, lng: position.coords.longitude};
+            geocoder.geocode({'location': latlng}, function(results, status) {
+              if (status === 'OK') {
+                if (results[1]) {
+                  // map.setZoom(11);
+                  // var marker = new google.maps.Marker({
+                  //   position: latlng,
+                  //   map: map
+                  // });
+                  // infowindow.setContent(results[1].formatted_address);
+                  // infowindow.open(map, marker);
+                  console.log(results[1].address_components[1]); 
+                  console.log(results[1].address_components[2]);    //results[1].formatted_address => Hasselt, Belgie
+                  console.log(results[1].address_components[3]); 
+                  console.log(results[1].address_components[0]); 
+                  console.log(results[1]); 
+
+                  var alertPopup = $ionicPopup.alert({
+                     title: 'U bent in de buurt van:',
+                     template: results[1].formatted_address
+                  });
+
+                } else {
+                  window.alert('No results found');
+                }
+              } else {
+                window.alert('Geocoder failed due to: ' + status);
+              }
+            });
+
+        }, function(error){
+          alert.log("Uw locatie niet gevonden!");
+        });
+ 
+    }
     
 });
+
+
