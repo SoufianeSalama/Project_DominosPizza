@@ -3,9 +3,9 @@
 // angular.module is a global place for creating, registering and retrieving Angular modules
 // 'starter' is the name of this angular module example (also set in a <body> attribute in index.html)
 // the 2nd parameter is an array of 'requires'
-angular.module('starter', ['ionic'])
+var applicatie = angular.module('starter', ['ionic', 'ngCordova']);
 
-.config(function($stateProvider, $urlRouterProvider){
+applicatie.config(function($stateProvider, $urlRouterProvider){
     $stateProvider
 
     .state('home',{
@@ -14,7 +14,8 @@ angular.module('starter', ['ionic'])
     })
     .state('scanner',{
       url:'/scanner',
-      templateUrl:'templates/scanner.html'
+      templateUrl:'templates/scanner.html',
+      controller:'BarcodeCtrl'
     })
      .state('hulp',{
       url:'/hulp',
@@ -22,9 +23,9 @@ angular.module('starter', ['ionic'])
     });
 
     $urlRouterProvider.otherwise('/home');
-})
+});
 
-.run(function($ionicPlatform) {
+applicatie.run(function($ionicPlatform) {
   $ionicPlatform.ready(function() {
     if(window.cordova && window.cordova.plugins.Keyboard) {
       // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
@@ -42,6 +43,22 @@ angular.module('starter', ['ionic'])
   });
 })
 
-.controller("HomeCtrl", function(){
+applicatie.controller("HomeCtrl", function(){
 
-})
+});
+
+
+//  Controller voor de BARCODE pagina
+applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner){
+
+    $scope.scanBarcode = function() {
+        $cordovaBarcodeScanner.scan().then(function(imageData) {
+            alert(imageData.text);
+            console.log("Barcode Format -> " + imageData.format);
+            console.log("Cancelled -> " + imageData.cancelled);
+        }, function(error) {
+            console.log("An error happened -> " + error);
+        });
+    };
+    
+});
