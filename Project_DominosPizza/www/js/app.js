@@ -198,10 +198,10 @@ applicatie.controller("MapCtrl", function($scope, $cordovaGeolocation){
   });
 
 
-});
+}); 
 
 //  Controller voor de LEVERING pagina
-applicatie.controller("HulpCtrl", function($scope, $cordovaGeolocation, $ionicPopup){
+applicatie.controller("HulpCtrl", function($scope, $cordovaGeolocation, $ionicPopup, $cordovaFlashlight){
 
     $scope.getLocation = function(){
 
@@ -244,7 +244,19 @@ applicatie.controller("HulpCtrl", function($scope, $cordovaGeolocation, $ionicPo
           alert.log("Uw locatie niet gevonden!");
         });
  
-    }
+    };
+
+    $scope.toggleFlashlight = function(){
+      $cordovaFlashlight.toggle()
+      .then(
+          function (success) { /* success */ 
+          },
+          function (error) { /* error */ 
+          }
+        );
+    };
+
+
     
 });
 
