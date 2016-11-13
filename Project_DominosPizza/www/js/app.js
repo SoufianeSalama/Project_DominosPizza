@@ -20,6 +20,16 @@ applicatie.config(function($stateProvider, $urlRouterProvider){
      .state('hulp',{
       url:'/hulp',
       templateUrl:'templates/hulp.html'
+    })
+     .state('levering',{
+      url:'/levering',
+      templateUrl:'templates/levering.html',
+      controller:'LeveringCtrl'
+    })
+     .state('leveringen',{
+      url:'/leveringen',
+      templateUrl:'templates/leveringen.html',
+      controller:'LeveringenCtrl'
     });
 
     $urlRouterProvider.otherwise('/home');
@@ -60,5 +70,54 @@ applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner){
             console.log("An error happened -> " + error);
         });
     };
+    
+});
+
+
+//  Controller voor de LEVERINGEN pagina
+applicatie.controller("LeveringenCtrl", function($scope){
+
+    $scope.items = [
+      {
+      "itemid" : "13",
+      "name" : "Soufiane Salama",
+      "address" : "Trekschurenstraat 324"
+      },
+      {
+      "itemid" : "22",
+      "name" : "Elias Jans",
+      "address" : "Luikersteenweg 24 bus2.2"
+      }
+      ,
+      {
+      "itemid" : "28",
+      "name" : "Michel Banken",
+      "address" : "Luikersteenweg 24 bus2.2"
+      }
+      ,
+      {
+      "itemid" : "33",
+      "name" : "Tom Herten",
+      "address" : "Luikersteenweg 24 bus2.2"
+      }
+    ];
+    
+});
+
+//  Controller voor de LEVERING pagina
+applicatie.controller("LeveringCtrl", function($scope){
+
+    $scope.items = [
+      {"title" : '12" BBQ Chicken'},
+      {"title" : '10" Cannibale'},
+      {"title" : "2* Cheesy bread"},
+      {"title" : "Chickenito's + BBQ saus"},
+      {"title" : "Pasta Rossa"},
+      {"title" : "Box Chicken + Chili saus"},
+      {"title" : "1.5L Fanta"},
+
+
+
+    ];
     
 });

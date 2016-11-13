@@ -1,0 +1,22 @@
+<ion-view view-title="Leveringen">
+    <ion-content>
+
+         	<!-- Card Header  -->
+            <div class="list card">
+                <div class="item item-divider">
+                  Leveringen die u vandaag heeft bezorgd:
+                </div>
+                <!-- Card list items  -->
+                <div ng-repeat="item in items" class="item item-button-right">
+                	<h2>Levering nr. {{item.itemid}}</h2>
+                	<p>Klant naam: {{item.name}}</p>
+                	<p>Leverings adres: {{item.address}}</p>
+                    <button class="button " ng-click="showOrder(item)">
+				      <i class="icon ion-more"></i>
+				    </button>
+                </div>
+            </div>
+
+    </ion-content>
+
+</ion-view> 

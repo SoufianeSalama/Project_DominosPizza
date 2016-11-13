@@ -1,0 +1,65 @@
+<ion-view view-title="Levering nr. ">
+    <ion-content>
+          <ion-list>
+          <div class="list card">
+
+              <!-- Card Header  -->
+              <div class="item item-divider">
+                Klantgegevens
+              </div>
+
+              <!-- Card List items  -->
+              <a href="barcode.html" class="item item-icon-left">
+                <i class="icon ion-social-euro"></i>
+                Bedrag
+              </a>
+
+              <a href="#" class="item item-icon-left">
+                <i class="icon ion-person"></i>
+                naam
+              </a>
+
+              <a href="#" class="item item-icon-left">
+                <i class="icon ion-map"></i>
+                adres
+              </a>
+
+              <a href="#" class="item item-icon-left">
+                <i class="icon ion-iphone"></i>
+                gsm
+              </a>
+
+              <a href="#" class="item item-icon-left">
+                <i class="icon ion-android-warning"></i>
+                status
+              </a>
+              <a href="#" class="item item-icon-left">
+                <i class="icon ion-ios-information"></i>
+                extra info
+              </a>
+
+            </div>
+
+            <!-- Card Header  -->
+            <div class="list card">
+                <div class="item item-divider">
+                  Bestelling
+                </div>
+                <!-- Card list items  -->
+                <ion-item ng-repeat="item in items">
+                   <p> {{item.title}}</p>
+                </ion-item>
+            </div>
+        </ion-list>
+
+        
+    </ion-content>
+
+    <div class="tabs tabs-dark tabs-icon-top">
+      <a class="tab-item">
+        <i class="icon ion-navigate"></i>
+        Route
+      </a>
+    </div>
+
+</ion-view> 
