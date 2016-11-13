@@ -1,1 +1,11 @@
 /* Empty. Add your own CSS if you like */
+
+body{
+	background-color: #E2DCFA;
+}
+
+#content{
+	width:90%;
+	margin:auto;
+	text-align:center;
+}
