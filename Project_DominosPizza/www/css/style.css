@@ -13,3 +13,14 @@ body{
 	margin-top:0px; 
 	margin-bottom:0px;
 }
+
+#map {
+
+    width: 95%;
+    height: 95%;
+    margin: auto;
+}
+
+.scroll {
+    height: 100%;
+}

@@ -30,6 +30,11 @@ applicatie.config(function($stateProvider, $urlRouterProvider){
       url:'/leveringen',
       templateUrl:'templates/leveringen.html',
       controller:'LeveringenCtrl'
+    })
+     .state('map',{
+      url:'/map',
+      templateUrl:'templates/map.html',
+      controller:'MapCtrl'
     });
 
     $urlRouterProvider.otherwise('/home');
@@ -115,9 +120,60 @@ applicatie.controller("LeveringCtrl", function($scope){
       {"title" : "Pasta Rossa"},
       {"title" : "Box Chicken + Chili saus"},
       {"title" : "1.5L Fanta"},
+];
+    
+});
 
+//  Controller voor de Google Maps pagina
+applicatie.controller("MapCtrl", function($scope, $cordovaGeolocation){
+  var options = {timeout: 10000, enableHighAccuracy: true};
+ 
+  $cordovaGeolocation.getCurrentPosition(options).then(function(position){
+ 
+    var latLng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+    var shopLatLng = new google.maps.LatLng(50.930997, 5.328689);   //stationsplein 11, HASSELT
+    var exDestLatLng = new google.maps.LatLng(50.932459, 5.350911);   //Example destination
+    
+    var mapOptions = {
+      center: latLng,
+      zoom: 15,
+      mapTypeId: google.maps.MapTypeId.ROADMAP
+    };
+ 
+    var mapObject = new google.maps.Map(document.getElementById("map"), mapOptions);
+    $scope.map = mapObject;
 
+    var shopIconUrl = "img/logoSmall.png";
+    var positionIconUrl="img/deliveryIcon.png";
+    var destinationIconUrl="img/destinationIcon.png";
 
-    ];
+    var shopMarker = new google.maps.Marker({
+        map: $scope.map,
+        animation: google.maps.Animation.DROP,
+        position: new google.maps.LatLng(50.930997, 5.328689),
+        icon: shopIconUrl
+    });   
+    var marker = new google.maps.Marker({
+        map: $scope.map,
+        animation: google.maps.Animation.DROP,
+        position: new google.maps.LatLng(position.coords.latitude, position.coords.longitude),
+        icon: positionIconUrl
+    }); 
+    var marker = new google.maps.Marker({
+        map: $scope.map,
+        animation: google.maps.Animation.DROP,
+        position:  new google.maps.LatLng(50.932459, 5.350911),
+        icon: destinationIconUrl
+    }); 
+
+  }, function(error){
+    alert.log("Uw locatie niet gevonden!");
+  });
+
+  
+  
+  
+
+           
     
 });
