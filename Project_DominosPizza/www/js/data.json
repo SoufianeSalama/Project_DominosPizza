@@ -1,0 +1,23 @@
+{
+  "klant": {
+    "ordernr": 53,
+    "prijs": 23.21,
+    "naam": "Elise van Beek",
+    "adres": "Luikersteenweg 25",
+    "stad": "Hasselt",
+    "betaald": true,
+  },
+  "order": {
+    "pizza": [
+      "10 inch Hawai",
+      "14 inch Cannibale"
+    ],
+    "side": [
+      "Popcorn chicken + bbq saus",
+      "Box Chicken"
+    ],
+    "drank": [
+      "1.5L Coca Cola"
+    ]
+  }
+}

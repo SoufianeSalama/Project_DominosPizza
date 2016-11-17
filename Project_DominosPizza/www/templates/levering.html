@@ -1,6 +1,6 @@
 <ion-view view-title="Levering nr. ">
     <ion-content>
-          <ion-list>
+        <ion-list>
           <div class="list card">
 
               <!-- Card Header  -->
@@ -9,33 +9,33 @@
               </div>
 
               <!-- Card List items  -->
-              <a href="barcode.html" class="item item-icon-left">
+              <a class="item item-icon-left">
                 <i class="icon ion-social-euro"></i>
-                Bedrag
+                € {{klant["bedrag"]}} 
               </a>
 
-              <a href="#" class="item item-icon-left">
+              <a  class="item item-icon-left">
                 <i class="icon ion-person"></i>
-                naam
+                {{klant["naam"]}} 
               </a>
 
-              <a href="#" class="item item-icon-left">
+              <a class="item item-icon-left">
                 <i class="icon ion-map"></i>
-                adres
+                {{klant["adres"]}} 
               </a>
 
-              <a href="#" class="item item-icon-left">
+              <a class="item item-icon-left">
                 <i class="icon ion-iphone"></i>
-                gsm
+                {{klant["gsm"]}} 
               </a>
 
-              <a href="#" class="item item-icon-left">
+              <a class="item item-icon-left">
                 <i class="icon ion-android-warning"></i>
-                status
+                {{klant["status"]}} 
               </a>
-              <a href="#" class="item item-icon-left">
+              <a class="item item-icon-left">
                 <i class="icon ion-ios-information"></i>
-                extra info
+                {{klant["notes"]}} 
               </a>
 
             </div>
