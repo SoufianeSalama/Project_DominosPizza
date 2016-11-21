@@ -4,13 +4,15 @@
 // 'starter' is the name of this angular module example (also set in a <body> attribute in index.html)
 // the 2nd parameter is an array of 'requires'
 var applicatie = angular.module('starter', ['ionic', 'ngCordova']);
+var db = null;
 
 applicatie.config(function($stateProvider, $urlRouterProvider){
     $stateProvider
 
     .state('home',{
       url:'/home',
-      templateUrl:'templates/home.html'
+      templateUrl:'templates/home.html',
+      controller: "HomeCtrl"
     })
     .state('scanner',{
       url:'/scanner',
@@ -41,7 +43,9 @@ applicatie.config(function($stateProvider, $urlRouterProvider){
     $urlRouterProvider.otherwise('/home');
 });
 
-applicatie.run(function($ionicPlatform) {
+applicatie.run(function($ionicPlatform, $ionicPopup, $cordovaSQLite) {
+  
+
   $ionicPlatform.ready(function() {
     if(window.cordova && window.cordova.plugins.Keyboard) {
       // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
@@ -56,20 +60,66 @@ applicatie.run(function($ionicPlatform) {
     if(window.StatusBar) {
       StatusBar.styleDefault();
     }
+
+
+    if(window.Connection) {
+        console.log("app.run controle");
+        db = $cordovaSQLite.openDB({ name: "project.db", location: 'default' });
+        $cordovaSQLite.execute(db, "CREATE TABLE IF NOT EXISTS leveringen (orderNr text primary key, naam text, adres text, status text, nota text, telefoon text, bedrag text)");
+        
+
+            if(navigator.connection.type == Connection.NONE) {
+              var confirmPopup = $ionicPopup.confirm({
+                  title: 'Fout!', // String. The title of the popup.
+                  cssClass: '', // String, The custom CSS class name
+                  subTitle: 'Voor deze applicatie moeten Internet en Locatie aan staan!', // String (optional). The sub-title of the popup.
+                  template: '', // String (optional). The html template to place in the popup body.
+                  templateUrl: '', // String (optional). The URL of an html template to place in the popup   body.
+                  cancelText: 'Afsluiten', // String (default: 'Cancel'). The text of the Cancel button.
+                  cancelType: 'button-assertive', // String (default: 'button-default'). The type of the Cancel button.
+                  okText: 'Instellingen', // String (default: 'OK'). The text of the OK button.
+                  okType: 'button-positive', // String (default: 'button-positive'). The type of the OK button.
+              });
+
+             confirmPopup.then(function(res) {
+                 if(res) {
+                   //console.log('You are sure');
+                    cordova.plugins.settings.openSetting("settings", function() {
+                            console.log('opened settings');
+                            ionic.Platform.exitApp();
+                        },
+                        function () {
+                            console.log('failed to open settings');
+                            ionic.Platform.exitApp();
+                        });
+                 } else {
+                   //console.log('You are not sure');
+                   ionic.Platform.exitApp();
+                 }
+             });
+          }
+    }
+    
   });
 })
 
-applicatie.controller("HomeCtrl", function(){
+applicatie.controller("HomeCtrl", function($scope, $cordovaSQLite, DatabaseService){
 
+    $scope.insert = function() {
+        DatabaseService.dropTabel();
+
+    }
 });
 
 
 //  Controller voor de BARCODE pagina
-applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner){
+applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner, LeveringService, DatabaseService){
 
     $scope.scanBarcode = function() {
         $cordovaBarcodeScanner.scan().then(function(imageData) {
-            alert(imageData.text);
+            Klant = LeveringService.getKlant(); //imageData.text
+            DatabaseService.setDB(Klant);
+            //alert(imageData.text);
             console.log("Barcode Format -> " + imageData.format);
             console.log("Cancelled -> " + imageData.cancelled);
         }, function(error) {
@@ -77,6 +127,31 @@ applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner){
         });
     };
     
+});
+
+applicatie.factory('DatabaseService', function($cordovaSQLite){
+    return{
+            setDB: function(Klant){
+              
+                var query = "INSERT INTO leveringen (orderNr, naam, adres, status, nota, telefoon, bedrag) VALUES (?,?,?,?,?,?,?)";
+                $cordovaSQLite.execute(db, query, [ Klant["ordernr"], Klant["naam"],Klant["adres"],Klant["status"],Klant["nota"],Klant["telefoon"],Klant["bedrag"] ]).then(function(res) {
+                  console.log("insertId: " + res.insertId);   // +" "+ String(res.data)
+                }, function (err) {
+                  console.log(err);
+                })
+            },
+            dropTabel: function(){
+               var query = "DROP TABLE leveringen";
+                $cordovaSQLite.execute(db, query).then(function(res) {
+                  console.log(res);   // +" "+ String(res.data)
+                  $cordovaSQLite.execute(db, "CREATE TABLE IF NOT EXISTS leveringen (orderNr text primary key, naam text, adres text, status text, nota text, telefoon text, bedrag text)");
+
+                }, function (err) {
+                  console.log(err);
+                })
+
+            }
+          }
 });
 
 
@@ -111,22 +186,82 @@ applicatie.controller("LeveringenCtrl", function($scope){
 });
 
 //  Controller voor de LEVERING pagina
-applicatie.controller("LeveringCtrl", function($scope){
-
-    $scope.items = [
-      {"title" : '12" BBQ Chicken'},
-      {"title" : '10" Cannibale'},
-      {"title" : "2* Cheesy bread"},
-      {"title" : "Chickenito's + BBQ saus"},
-      {"title" : "Pasta Rossa"},
-      {"title" : "Box Chicken + Chili saus"},
-      {"title" : "1.5L Fanta"}
-    ];
+applicatie.controller("LeveringCtrl", function($scope, LeveringService){
     
+    $scope.klant =  LeveringService.getKlant();
+    $scope.items =  LeveringService.getBestelling();
+    // Klantinfo = {
+    //           "ordernr" : klant2["ordernr"],
+    //           "naam": "test", 
+    //           "bedrag" : klant2["bedrag"], 
+    //           "adres" : klant2["adres"],
+    //           "telefoon" : klant2["telefoon"],
+    //           "status" : klant2["status"],
+    //           "nota" : klant2["notas"]
+    //         };
+    // var Bestellinginfo = [
+            //     {"title" : '12" BBQ Chicken'},
+            //     {"title" : '10" Cannibale'},
+            //     {"title" : "2* Cheesy bread"},
+            //     {"title" : "Chickenito's + BBQ saus"},
+            //     {"title" : "Pasta Rossa"},
+            //     {"title" : "Box Chicken + Chili saus"},
+            //     {"title" : "1.5L Fanta"}
+            // ];
 });
+
+
+applicatie.factory('LeveringService', function($http){
+  var Klantinfo = {};
+  return{
+        
+        getKlant: function(){
+
+            
+            //return $http.get("ip_adres_van_api.com/?id=" + id);
+            
+            $http.get("js/data.json").then(function(response){
+              //console.log(response);
+              var klant = response['data']['klant'];
+
+              Klantinfo["naam"] = klant["naam"];
+              Klantinfo["bedrag"] = klant["bedrag"];
+              Klantinfo["adres"] = klant["adres"];
+              Klantinfo["telefoon"] = klant["telefoon"];
+              Klantinfo["nota"] = klant["notas"];
+              Klantinfo["status"] = klant["status"];
+              Klantinfo["ordernr"] = klant["ordernr"];
+            });
+            
+            return Klantinfo;
+        },
+
+        getBestelling: function(){
+
+            var Bestellinginfo = [];
+            $http.get("js/data2.json").then(function(response){
+              
+              var order = response['data']['order'];
+              console.log(order);
+              
+              var arrayLength = order.length;
+              for (var i = 0; i < arrayLength; i++) {
+                  Bestellinginfo.push(order[i]);
+                  
+              }
+              console.log(Bestellinginfo);
+            });
+            
+            return Bestellinginfo;
+        }
+    }
+});
+
+
 
 //  Controller voor de Google Maps pagina
 applicatie.controller("MapCtrl", function($scope, $cordovaGeolocation){
+  
   var options = {timeout: 10000, enableHighAccuracy: true};
  
   $cordovaGeolocation.getCurrentPosition(options).then(function(position){
@@ -208,7 +343,7 @@ applicatie.controller("HulpCtrl", function($scope, $cordovaGeolocation, $ionicPo
         var options = {timeout: 10000, enableHighAccuracy: true};
  
         $cordovaGeolocation.getCurrentPosition(options).then(function(position){
-          
+            console.log(position);
             var geocoder = new google.maps.Geocoder;
             var latlng = {lat: position.coords.latitude, lng: position.coords.longitude};
             geocoder.geocode({'location': latlng}, function(results, status) {
@@ -244,6 +379,27 @@ applicatie.controller("HulpCtrl", function($scope, $cordovaGeolocation, $ionicPo
           alert.log("Uw locatie niet gevonden!");
         });
  
+    };
+
+    $scope.watchPosition = function(){
+          var watchOptions = {
+          timeout : 3000,
+          enableHighAccuracy: false // may cause errors if true
+        };
+
+        var watch = $cordovaGeolocation.watchPosition(watchOptions);
+        watch.then(
+          null,
+          function(err) {
+            // error
+          },
+          function(position) {
+            var lat  = position.coords.latitude;
+            var lon = position.coords.longitude;
+            console.log(lat + " " + lon);
+
+        });
+
     };
 
     $scope.toggleFlashlight = function(){

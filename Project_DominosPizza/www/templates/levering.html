@@ -11,7 +11,7 @@
               <!-- Card List items  -->
               <a class="item item-icon-left">
                 <i class="icon ion-social-euro"></i>
-                € {{klant["bedrag"]}} 
+                 {{klant["bedrag"]}} 
               </a>
 
               <a  class="item item-icon-left">
@@ -26,7 +26,7 @@
 
               <a class="item item-icon-left">
                 <i class="icon ion-iphone"></i>
-                {{klant["gsm"]}} 
+                {{klant["telefoon"]}} 
               </a>
 
               <a class="item item-icon-left">
@@ -35,7 +35,7 @@
               </a>
               <a class="item item-icon-left">
                 <i class="icon ion-ios-information"></i>
-                {{klant["notes"]}} 
+                {{klant["nota"]}} 
               </a>
 
             </div>
@@ -47,7 +47,7 @@
                 </div>
                 <!-- Card list items  -->
                 <ion-item ng-repeat="item in items">
-                   <p> {{item.title}}</p>
+                   <p> {{item}}</p>
                 </ion-item>
             </div>
         </ion-list>

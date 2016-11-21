@@ -9,17 +9,12 @@
     "telefoon" : "0422556633",
     "notas" : "Aanbellen bij Reekmans"
   },
-  "order": {
-    "pizza": [
-      "10 inch Hawai",
-      "14 inch Cannibale"
-    ],
-    "side": [
-      "Popcorn chicken + bbq saus",
-      "Box Chicken"
-    ],
-    "drank": [
-      "1.5L Coca Cola"
+  "order": [
+    "10 inch Hawai",
+    "14 inch Cannibale",
+    "Popcorn chicken + bbq saus",
+    "Box Chicken",
+    "1.5L Coca Cola"
     ]
-  }
+  
 }
