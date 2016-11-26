@@ -24,3 +24,8 @@ body{
 .scroll {
     height: 100%;
 }
+
+.ja{
+	
+	background-image: url("../img/bg_white.jpg");
+}

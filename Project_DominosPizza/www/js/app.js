@@ -106,26 +106,65 @@ applicatie.run(function($ionicPlatform, $ionicPopup, $cordovaSQLite) {
 applicatie.controller("HomeCtrl", function($scope, $cordovaSQLite, DatabaseService){
 
     $scope.insert = function() {
-        DatabaseService.dropTabel();
+        //DatabaseService.dropTabel();
+        DatabaseService.selectAll();
+
 
     }
 });
 
 
 //  Controller voor de BARCODE pagina
-applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner, LeveringService, DatabaseService){
+applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner,$ionicPopup, $q, LeveringService, DatabaseService){
 
     $scope.scanBarcode = function() {
         $cordovaBarcodeScanner.scan().then(function(imageData) {
-            Klant = LeveringService.getKlant(); //imageData.text
-            DatabaseService.setDB(Klant);
-            //alert(imageData.text);
-            console.log("Barcode Format -> " + imageData.format);
-            console.log("Cancelled -> " + imageData.cancelled);
+            
+            if (!imageData.cancelled && imageData.format=="QR_CODE" ){
+                console.log(LeveringService.getKlant());
+                var klant = LeveringService.getKlant();
+                if (klant["ordernr"] != null){
+                  Melding(klant);
+                }
+                else{
+                  console.log(klant);
+                }
+                
+            }
+
+            
+            
+            
+            
         }, function(error) {
             console.log("An error happened -> " + error);
         });
     };
+
+    function Melding(Klant){
+      console.log( Klant );
+    var confirmPopup = $ionicPopup.confirm({
+                  title: 'Order nr ', // String. The title of the popup.
+                  cssClass: '', // String, The custom CSS class name
+                  subTitle: 'Bent u zeker dat u deze levering wilt toevoegen?', // String (optional). The sub-title of the popup.
+                  template: '', // String (optional). The html template to place in the popup body.
+                  templateUrl: '', // String (optional). The URL of an html template to place in the popup   body.
+                  cancelText: 'Annuleer', // String (default: 'Cancel'). The text of the Cancel button.
+                  cancelType: 'button-assertive', // String (default: 'button-default'). The type of the Cancel button.
+                  okText: 'Toevoegen', // String (default: 'OK'). The text of the OK button.
+                  okType: 'button-positive', // String (default: 'button-positive'). The type of the OK button.
+              });
+
+             confirmPopup.then(function(res) {
+                 if(res) {
+                   DatabaseService.setDB(Klant);
+                 
+                 } else {
+                 
+                 }
+            });
+
+      };
     
 });
 
@@ -150,38 +189,79 @@ applicatie.factory('DatabaseService', function($cordovaSQLite){
                   console.log(err);
                 })
 
+            },
+            selectAll: function(){
+              var leveringen = [];
+              var levering = {};
+              var query = "SELECT * FROM leveringen";
+              $cordovaSQLite.execute(db, query).then(function(res) {
+                  
+                  for ( i=1; i< res.rows.length; i++){
+                    console.log("SELECTED -> " + res.rows.item(i).orderNr + " " + res.rows.item(i).naam + " " + res.rows.item(i).adres+ " " + res.rows.item(i).status+ " " + res.rows.item(i).nota  );
+
+                    levering = {
+                      "itemid" : res.rows.item(i).orderNr,
+                      "name" : res.rows.item(i).naam,
+                      "address" : res.rows.item(i).adres
+                    };
+                    leveringen.push(levering);
+                    console.log(levering);
+                  }
+
+                  console.log(leveringen);
+
+                  return leveringen;
+              }, function (err) {
+                  console.error(err);
+              });
             }
           }
 });
 
 
 //  Controller voor de LEVERINGEN pagina
-applicatie.controller("LeveringenCtrl", function($scope){
+applicatie.controller("LeveringenCtrl", function($scope, DatabaseService){
 
-    $scope.items = [
-      {
-      "itemid" : "13",
-      "name" : "Soufiane Salama",
-      "address" : "Trekschurenstraat 324"
-      },
-      {
-      "itemid" : "22",
-      "name" : "Elias Jans",
-      "address" : "Luikersteenweg 24 bus2.2"
-      }
-      ,
-      {
-      "itemid" : "28",
-      "name" : "Michel Banken",
-      "address" : "Luikersteenweg 24 bus2.2"
-      }
-      ,
-      {
-      "itemid" : "33",
-      "name" : "Tom Herten",
-      "address" : "Luikersteenweg 24 bus2.2"
-      }
-    ];
+    // $scope.items = [
+    //   {
+    //   "itemid" : "13",
+    //   "name" : "Soufiane Salama",
+    //   "address" : "Trekschurenstraat 324"
+    //   },
+    //   {
+    //   "itemid" : "22",
+    //   "name" : "Elias Jans",
+    //   "address" : "Luikersteenweg 24 bus2.2"
+    //   }
+    //   ,
+    //   {
+    //   "itemid" : "28",
+    //   "name" : "Michel Banken",
+    //   "address" : "Luikersteenweg 24 bus2.2"
+    //   }
+    //   ,
+    //   {
+    //   "itemid" : "33",
+    //   "name" : "Tom Herten",
+    //   "address" : "Luikersteenweg 24 bus2.2"
+    //   }
+    // ];
+    var test = [
+       {
+     "itemid" : "13",
+     "name" : "Soufiane Salama",
+     "address" : "Trekschurenstraat 324"
+     }];
+     console.log(test);
+    $scope.items = DatabaseService.selectAll();
+    
+    var test = [
+       {
+     "itemid" : "13",
+     "name" : "Soufiane Salama",
+     "address" : "Trekschurenstraat 324"
+     }];
+     console.log(test);
     
 });
 
@@ -190,69 +270,57 @@ applicatie.controller("LeveringCtrl", function($scope, LeveringService){
     
     $scope.klant =  LeveringService.getKlant();
     $scope.items =  LeveringService.getBestelling();
-    // Klantinfo = {
-    //           "ordernr" : klant2["ordernr"],
-    //           "naam": "test", 
-    //           "bedrag" : klant2["bedrag"], 
-    //           "adres" : klant2["adres"],
-    //           "telefoon" : klant2["telefoon"],
-    //           "status" : klant2["status"],
-    //           "nota" : klant2["notas"]
-    //         };
-    // var Bestellinginfo = [
-            //     {"title" : '12" BBQ Chicken'},
-            //     {"title" : '10" Cannibale'},
-            //     {"title" : "2* Cheesy bread"},
-            //     {"title" : "Chickenito's + BBQ saus"},
-            //     {"title" : "Pasta Rossa"},
-            //     {"title" : "Box Chicken + Chili saus"},
-            //     {"title" : "1.5L Fanta"}
-            // ];
+ 
 });
 
 
 applicatie.factory('LeveringService', function($http){
-  var Klantinfo = {};
+  
   return{
         
         getKlant: function(){
-
-            
-            //return $http.get("ip_adres_van_api.com/?id=" + id);
-            
-            $http.get("js/data.json").then(function(response){
-              //console.log(response);
-              var klant = response['data']['klant'];
-
-              Klantinfo["naam"] = klant["naam"];
-              Klantinfo["bedrag"] = klant["bedrag"];
-              Klantinfo["adres"] = klant["adres"];
-              Klantinfo["telefoon"] = klant["telefoon"];
-              Klantinfo["nota"] = klant["notas"];
-              Klantinfo["status"] = klant["status"];
-              Klantinfo["ordernr"] = klant["ordernr"];
+          var Klantinfo = {};
+          
+          $http.get("js/data2.json")
+            .success(function(data) {
+              var klant = data['klant'];
+              Klantinfo["ordernr"]= klant["ordernr"];
+              Klantinfo["bedrag"]= klant["bedrag"];
+              Klantinfo["naam"]= klant["naam"];
+              Klantinfo["adres"]= klant["adres"];
+              Klantinfo["telefoon"]= klant["telefoon"];
+              Klantinfo["status"]= klant["status"];
+              Klantinfo["nota"]= klant["notas"];
+              
+            })
+            .error(function(data) {
+                console.log("ERROR");
             });
+
+          return Klantinfo;
             
-            return Klantinfo;
         },
 
         getBestelling: function(){
 
             var Bestellinginfo = [];
-            $http.get("js/data2.json").then(function(response){
-              
-              var order = response['data']['order'];
-              console.log(order);
-              
+
+            $http.get("js/data2.json")
+            .success(function(data) {
+              var order = data['order'];
+
               var arrayLength = order.length;
               for (var i = 0; i < arrayLength; i++) {
                   Bestellinginfo.push(order[i]);
                   
               }
-              console.log(Bestellinginfo);
+             
+            })
+            .error(function(data) {
+                console.log("ERROR");
             });
-            
-            return Bestellinginfo;
+          
+           return Bestellinginfo;
         }
     }
 });
@@ -379,27 +447,6 @@ applicatie.controller("HulpCtrl", function($scope, $cordovaGeolocation, $ionicPo
           alert.log("Uw locatie niet gevonden!");
         });
  
-    };
-
-    $scope.watchPosition = function(){
-          var watchOptions = {
-          timeout : 3000,
-          enableHighAccuracy: false // may cause errors if true
-        };
-
-        var watch = $cordovaGeolocation.watchPosition(watchOptions);
-        watch.then(
-          null,
-          function(err) {
-            // error
-          },
-          function(position) {
-            var lat  = position.coords.latitude;
-            var lon = position.coords.longitude;
-            console.log(lat + " " + lon);
-
-        });
-
     };
 
     $scope.toggleFlashlight = function(){

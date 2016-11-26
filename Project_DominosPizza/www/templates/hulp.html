@@ -1,48 +1,73 @@
-<ion-view view-title="Hulp" style="background-color:#E2DCFA;">
+<ion-view view-title="Hulp"  class="ja">
     <ion-content>
-        
-        <br>
-        <div id="content">
-            <a href="tel:+101"  class="button button-block button-positive icon-left ion-ios-telephone" >101</a>
-            <br>
+
+        <div class="card">
+          <div class="item item-divider">
+            Bellen
+          </div>
+          <div class="item item-text-wrap">
+            <a href="tel:+101"  class="button button-outline button-block button-positive icon-left ion-ios-telephone" >101</a>
             <a href="tel:+112"  class="button button-block button-positive icon-left ion-ios-telephone" >112</a>
-            <br>
-            <a href="tel:+011753911"  class="button button-block button-positive icon-left ion-ios-telephone" >Klant</a>
-            <br>
+            <a href="tel:+011753911"  class="button button-outline button-block button-positive icon-left ion-ios-telephone" >Klant</a>
             <a href="tel:+011753911"  class="button button-block button-positive icon-left ion-ios-telephone" >Manager</a>
-            <br>
-            <a href="tel:+011753911" class="button button-positive button-block icon-left ion-ios-telephone" >Winkel</a>
-            <br>
+            <a href="tel:+011753911" class="button button-outline button-positive button-block icon-left ion-ios-telephone" >Winkel</a>
             <a href="tel:+011753911"  class="button button-block button-positive icon-left ion-ios-telephone" >Franchisée</a>
 
-            <h3>Ongeval</h3>
-            <p>Het eerste wat u moet doen na een scooterongeval is denken om uw eigen veiligheid en de persoon die wellicht bij u achterop zat. Zorg dat u niet nog een keer wordt aangereden maar dan door het andere verkeer. Als uw scooter of brommer de weg blokkeert haalt u deze weg, anders laat u uw scooter liggen. Vergeet geen foto’s te maken voordat u uw scooter verplaatst. Dit geldt ook voor de andere weggebruiker waarmee u in een botsing bent geraakt. Maak indien mogelijk met uw mobiele telefoon zo veel mogelijk foto’s van het ongeluk. Zet alles op de foto of schrijf  het op:
-            <li>het kenteken van de tegenpartij</li>
-            <li>de remsporen op de weg</li>
-            <li>de schade aan de voertuigen</li>
-            <li>de persoonlijke schade, etc</li></p>
+          </div>
+          
         </div>
 
+        <div class="card">
+          <div class="item item-divider">
+            Ongeluk of verwonding
+          </div>
+          <div class="item item-text-wrap">
 
+            <ol>
+              <li>Blijf kalm</li>
+              <li>Stel vast of er medische hulp moet komen</li>
+              <li>Bel een ambulance indien nodig</li>
+              <li>Bel je franchisenemer en/of supervisor</li>
+
+            </ol>
+
+          </div>
+          
+        </div>
+
+        <div class="card">
+          <div class="item item-divider">
+            Overval
+          </div>
+          <div class="item item-text-wrap">
+
+            <ol>
+              <li>Blijf kalm</li>
+              <li>Verzet je niet</li>
+              <li>Werk mee met de overvaller...geef ze alles wat ze willen</li>
+              <li>Hou het zo kort mogelijk... Doe niks wat het langer kan duren</li>
+              <li>Kijk af en toe en probeer zoveel mogelijk opvallende kenmerken van de overvaller te onthouden</li>
+            </ol>
+
+          </div>
+          
+        </div>
+
+        <br><br>
 
             
     </ion-content>
 
-     <div class="tabs tabs-dark tabs-icon-top">
+    <div class="tabs tabs-dark tabs-icon-top">
       
-      <a class="tab-item" ng-click="getLocation()">
-        <i class="icon ion-location"></i>
-        Waar ben ik?
-      </a>
-      <a class="tab-item" ng-click="watchPosition()">
-        <i class="icon ion-location"></i>
-        Watch Position
-      </a>
-      
-
-      <a class="tab-item" ng-click="toggleFlashlight()">
-        <i class="icon ion-lightbulb"></i>
-        Zaklamp
-      </a>
+        <a class="tab-item" ng-click="getLocation()">
+            <i class="icon ion-location"></i>
+            Waar ben ik?
+        </a>
+        <a class="tab-item" ng-click="toggleFlashlight()">
+            <i class="icon ion-lightbulb"></i>
+            Zaklamp
+        </a>
     </div>
+
 </ion-view>
