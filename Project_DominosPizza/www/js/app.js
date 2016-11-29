@@ -241,12 +241,12 @@ applicatie.factory('DatabaseService', function($cordovaSQLite, $q){
             insertDB: function(levering){
                 var klant = {};
                 var bestelling = [];
-                console.log(levering["orderid"]);
+                
                 klant = levering["klant"];
-                bestelling = levering["order"];
-                console.log(klant);
-                var query = "INSERT INTO leveringen (orderid, ordernr, bedrag, naam, adres, telefoon, nota, betaling, timestamp) VALUES (?,?,?,?,?,?,?,?,?)";
-                $cordovaSQLite.execute(db, query, [levering["orderid"], klant["ordernr"], klant["bedrag"],klant["naam"],klant["adres"],klant["telefoon"],klant["nota"],klant["betaling"], klant["timestamp"] ]).then(function(res) {
+                bestelling = angular.toJson(levering["order"]);
+                
+                var query = "INSERT INTO leveringen (orderid, ordernr, bedrag, naam, adres, telefoon, nota, betaling, timestamp, bestelling) VALUES (?,?,?,?,?,?,?,?,?,?)";
+                $cordovaSQLite.execute(db, query, [levering["orderid"], klant["ordernr"], klant["bedrag"],klant["naam"],klant["adres"],klant["telefoon"],klant["nota"],klant["betaling"], klant["timestamp"], bestelling ]).then(function(res) {
                   console.log("insertId: " + res.insertId);   // +" "+ String(res.data)
                 }, function (err) {
                   console.log(err);
@@ -271,7 +271,7 @@ applicatie.factory('DatabaseService', function($cordovaSQLite, $q){
               $cordovaSQLite.execute(db, query).then(function(res) {
 
                   for ( i=0; i< res.rows.length; i++){
-                    console.log("SELECTED -> " + res.rows.item(i).ordernr + " " + res.rows.item(i).naam + " " + res.rows.item(i).adres+ " " + res.rows.item(i).betaling+ " " + res.rows.item(i).nota  );
+                    console.log("SELECTED -> " + res.rows.item(i).ordernr + " " + res.rows.item(i).naam + " " + res.rows.item(i).adres+ " " + res.rows.item(i).betaling+ " " + res.rows.item(i).nota + " " + res.rows.item(i).bestelling);
 
                     levering = {
                       "orderid" : res.rows.item(i).orderid,
@@ -326,24 +326,15 @@ applicatie.factory('DatabaseService', function($cordovaSQLite, $q){
 
             getOrderAsync: function(orderID){
               var deferred = $q.defer();
-              var klant = {};
-              var query = "SELECT  ordernr, bedrag, naam, adres, telefoon, nota, betaling, timestamp FROM leveringen WHERE orderid = ?";
+              var order = [];
+              var query = "SELECT  bestelling FROM leveringen WHERE orderid = ?";
               $cordovaSQLite.execute(db, query, [orderID]).then(function(res) {
                   if(res.rows.length > 0) {
-                      console.log("SELECTED -> " + res.rows.item(0).ordernr + " " + res.rows.item(0).naam);
+                      console.log("SELECTED -> " + res.rows.item(0).bestelling);
 
-                      klant = {
-                      //"orderid" : res.rows.item(0).orderid,
-                      "ordernr" : res.rows.item(0).ordernr,
-                      "naam" : res.rows.item(0).naam,
-                      "bedrag" : res.rows.item(0).bedrag,
-                      "adres" : res.rows.item(0).adres,
-                      "telefoon" : res.rows.item(0).telefoon,
-                      "betaling" : res.rows.item(0).betaling,
-                      "nota" : res.rows.item(0).nota
-                    };
+                      order = angular.fromJson(res.rows.item(0).bestelling);
 
-                    deferred.resolve(klant);
+                    deferred.resolve(order);
                   } else {
                       console.log("No results found");
                   }
@@ -362,31 +353,7 @@ applicatie.factory('DatabaseService', function($cordovaSQLite, $q){
 //  Controller voor de LEVERINGEN pagina
 applicatie.controller("LeveringenCtrl", function($scope, DatabaseService){
 
-    // $scope.items = [
-    //   {
-    //   "itemid" : "13",
-    //   "name" : "Soufiane Salama",
-    //   "address" : "Trekschurenstraat 324"
-    //   },
-    //   {
-    //   "itemid" : "22",
-    //   "name" : "Elias Jans",
-    //   "address" : "Luikersteenweg 24 bus2.2"
-    //   }
-    //   ,
-    //   {
-    //   "itemid" : "28",
-    //   "name" : "Michel Banken",
-    //   "address" : "Luikersteenweg 24 bus2.2"
-    //   }
-    //   ,
-    //   {
-    //   "itemid" : "33",
-    //   "name" : "Tom Herten",
-    //   "address" : "Luikersteenweg 24 bus2.2"
-    //   }
-    // ];
-    console.log(DatabaseService.selectAll());
+
     $scope.items = DatabaseService.selectAll();
     
     
@@ -395,20 +362,23 @@ applicatie.controller("LeveringenCtrl", function($scope, DatabaseService){
 //  Controller voor de LEVERING pagina
 applicatie.controller("LeveringCtrl", function($scope, LeveringService, $stateParams, DatabaseService ,$q){
     var orderID = $stateParams.orderID;  
-    //$scope.klant =  LeveringService.getKlant();
-    $scope.items =  LeveringService.getBestelling();
     
-    // var result =  DatabaseService.getKlant(orderID);
-
-    // console.log(result);
-
     DatabaseService.getKlantAsync(orderID).then(function(res){
                  
       $scope.klant =res;
     })
     .catch(function(response){
         console.log(response.status);
-     });                 
+     });  
+
+    
+    DatabaseService.getOrderAsync(orderID).then(function(res){
+                 
+      $scope.items = res;
+    })
+    .catch(function(response){
+        console.log(response.status);
+     });               
                   
 });
 
