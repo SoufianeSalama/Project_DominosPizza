@@ -25,7 +25,7 @@ applicatie.config(function($stateProvider, $urlRouterProvider){
       controller :'HulpCtrl'
     })
      .state('levering',{
-      url:'/levering', ///:orderID
+      url:'/levering/:orderID', //
       templateUrl:'templates/levering.html',
       controller:'LeveringCtrl'
     })
@@ -166,22 +166,6 @@ applicatie.factory('LeveringService', function($http, $q){
            return Bestellinginfo;
         },
 
-        getKlantAsync : function() {
-          var Klantinfo = {};
-            var deferred = $q.defer();
-            $http.get('js/data2.json')
-            .then(function(response){
-              var klant = response["data"]['klant'];
-              
-              console.log(klant);
-              deferred.resolve(klant);
-            })
-            .catch(function(response){
-              deferred.reject(response);
-            });
-            return deferred.promise;
-        },
-
         getBestellingAsync : function() {
           var Bestellinginfo = {};
             var deferred = $q.defer();
@@ -195,6 +179,7 @@ applicatie.factory('LeveringService', function($http, $q){
             .catch(function(response){
               deferred.reject(response);
             });
+
             return deferred.promise;
         }
     }
@@ -251,7 +236,7 @@ applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner,$io
     
 });
 
-applicatie.factory('DatabaseService', function($cordovaSQLite){
+applicatie.factory('DatabaseService', function($cordovaSQLite, $q){
     return{
             insertDB: function(levering){
                 var klant = {};
@@ -307,18 +292,68 @@ applicatie.factory('DatabaseService', function($cordovaSQLite){
               return leveringen;
             },
 
-            getKlant: function(orderID){
-
-              var query = "SELECT ordernr, bedrag, naam, adres, telefoon, nota, betaling, timestamp FROM leveringen WHERE orderid = ?";
+            getKlantAsync: function(orderID){
+              var deferred = $q.defer();
+              var klant = {};
+              var query = "SELECT  ordernr, bedrag, naam, adres, telefoon, nota, betaling, timestamp FROM leveringen WHERE orderid = ?";
               $cordovaSQLite.execute(db, query, [orderID]).then(function(res) {
                   if(res.rows.length > 0) {
                       console.log("SELECTED -> " + res.rows.item(0).ordernr + " " + res.rows.item(0).naam);
+
+                      klant = {
+                      //"orderid" : res.rows.item(0).orderid,
+                      "ordernr" : res.rows.item(0).ordernr,
+                      "naam" : res.rows.item(0).naam,
+                      "bedrag" : res.rows.item(0).bedrag,
+                      "adres" : res.rows.item(0).adres,
+                      "telefoon" : res.rows.item(0).telefoon,
+                      "betaling" : res.rows.item(0).betaling,
+                      "nota" : res.rows.item(0).nota
+                    };
+
+                    deferred.resolve(klant);
                   } else {
                       console.log("No results found");
                   }
               }, function (err) {
                   console.error(err);
-              });
+                  deferred.reject(err);
+              }); 
+
+              return deferred.promise;
+              
+            },
+
+            getOrderAsync: function(orderID){
+              var deferred = $q.defer();
+              var klant = {};
+              var query = "SELECT  ordernr, bedrag, naam, adres, telefoon, nota, betaling, timestamp FROM leveringen WHERE orderid = ?";
+              $cordovaSQLite.execute(db, query, [orderID]).then(function(res) {
+                  if(res.rows.length > 0) {
+                      console.log("SELECTED -> " + res.rows.item(0).ordernr + " " + res.rows.item(0).naam);
+
+                      klant = {
+                      //"orderid" : res.rows.item(0).orderid,
+                      "ordernr" : res.rows.item(0).ordernr,
+                      "naam" : res.rows.item(0).naam,
+                      "bedrag" : res.rows.item(0).bedrag,
+                      "adres" : res.rows.item(0).adres,
+                      "telefoon" : res.rows.item(0).telefoon,
+                      "betaling" : res.rows.item(0).betaling,
+                      "nota" : res.rows.item(0).nota
+                    };
+
+                    deferred.resolve(klant);
+                  } else {
+                      console.log("No results found");
+                  }
+              }, function (err) {
+                  console.error(err);
+                  deferred.reject(err);
+              }); 
+
+              return deferred.promise;
+              
             }
           }
 });
@@ -358,13 +393,23 @@ applicatie.controller("LeveringenCtrl", function($scope, DatabaseService){
 });
 
 //  Controller voor de LEVERING pagina
-applicatie.controller("LeveringCtrl", function($scope, LeveringService, $stateParams, DatabaseService ){
-    var orderID = 1;  //$stateParams.orderID;
-    $scope.klant =  LeveringService.getKlant();
+applicatie.controller("LeveringCtrl", function($scope, LeveringService, $stateParams, DatabaseService ,$q){
+    var orderID = $stateParams.orderID;  
+    //$scope.klant =  LeveringService.getKlant();
     $scope.items =  LeveringService.getBestelling();
     
-    DatabaseService.getKlant(orderID);
+    // var result =  DatabaseService.getKlant(orderID);
 
+    // console.log(result);
+
+    DatabaseService.getKlantAsync(orderID).then(function(res){
+                 
+      $scope.klant =res;
+    })
+    .catch(function(response){
+        console.log(response.status);
+     });                 
+                  
 });
 
 

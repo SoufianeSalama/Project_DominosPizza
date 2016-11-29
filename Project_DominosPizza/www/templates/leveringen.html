@@ -11,9 +11,9 @@
                 	<h2>Levering nr. {{item.ordernr}}</h2>
                 	<p>Klant naam: {{item.naam}}</p>
                 	<p>Adres: {{item.adres}}</p>
-                    <button class="button " ng-click="showOrder(item)">
+                    <a class="button " ng-href="#/levering/{{item.orderid}}">
 				      <i class="icon ion-more"></i>
-				    </button>
+				    </a>
                 </div>
             </div>
 
