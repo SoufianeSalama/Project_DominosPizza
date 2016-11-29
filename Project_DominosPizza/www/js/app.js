@@ -25,7 +25,7 @@ applicatie.config(function($stateProvider, $urlRouterProvider){
       controller :'HulpCtrl'
     })
      .state('levering',{
-      url:'/levering',
+      url:'/levering', ///:orderID
       templateUrl:'templates/levering.html',
       controller:'LeveringCtrl'
     })
@@ -35,7 +35,7 @@ applicatie.config(function($stateProvider, $urlRouterProvider){
       controller:'LeveringenCtrl'
     })
      .state('map',{
-      url:'/map',
+      url:'/map/:adres',
       templateUrl:'templates/map.html',
       controller:'MapCtrl'
     });
@@ -65,7 +65,9 @@ applicatie.run(function($ionicPlatform, $ionicPopup, $cordovaSQLite) {
     if(window.Connection) {
         console.log("app.run controle");
         db = $cordovaSQLite.openDB({ name: "project.db", location: 'default' });
-        $cordovaSQLite.execute(db, "CREATE TABLE IF NOT EXISTS leveringen (orderNr text primary key, naam text, adres text, status text, nota text, telefoon text, bedrag text)");
+            $cordovaSQLite.execute(db, "CREATE TABLE IF NOT EXISTS leveringen ( orderid integer primary key ,ordernr text, bedrag text, naam text, adres text, telefoon text, nota text, betaling text, timestamp text, bestelling text)");
+        
+        
         
 
             if(navigator.connection.type == Connection.NONE) {
@@ -105,7 +107,14 @@ applicatie.run(function($ionicPlatform, $ionicPopup, $cordovaSQLite) {
 
 applicatie.controller("HomeCtrl", function($scope, $cordovaSQLite, DatabaseService){
 
-    $scope.insert = function() {
+    $scope.drop = function() {
+        //DatabaseService.dropTabel();
+        DatabaseService.dropTabel();
+
+
+    }
+
+    $scope.show = function() {
         //DatabaseService.dropTabel();
         DatabaseService.selectAll();
 
@@ -114,37 +123,111 @@ applicatie.controller("HomeCtrl", function($scope, $cordovaSQLite, DatabaseServi
 });
 
 
+applicatie.factory('LeveringService', function($http, $q){
+  
+  return{
+        
+        getKlant: function(){
+          var Klantinfo = {};
+          
+          $http.get("js/data2.json")
+            .success(function(data) {
+              var klant = data['klant'];
+              Klantinfo = klant;
+              
+            })
+            .error(function(data) {
+                console.log("ERROR");
+            });
+
+          return Klantinfo;
+            
+        },
+
+        getBestelling: function(){
+
+            var Bestellinginfo = [];
+
+            $http.get("js/data2.json")
+            .success(function(data) {
+              var order = data['order'];
+
+              var arrayLength = order.length;
+              for (var i = 0; i < arrayLength; i++) {
+                  Bestellinginfo.push(order[i]);
+                  
+              }
+             
+            })
+            .error(function(data) {
+                console.log("ERROR");
+            });
+          
+           return Bestellinginfo;
+        },
+
+        getKlantAsync : function() {
+          var Klantinfo = {};
+            var deferred = $q.defer();
+            $http.get('js/data2.json')
+            .then(function(response){
+              var klant = response["data"]['klant'];
+              
+              console.log(klant);
+              deferred.resolve(klant);
+            })
+            .catch(function(response){
+              deferred.reject(response);
+            });
+            return deferred.promise;
+        },
+
+        getBestellingAsync : function() {
+          var Bestellinginfo = {};
+            var deferred = $q.defer();
+            $http.get('js/data2.json')
+            .then(function(response){
+              var bestelling = response["data"];
+              
+              console.log(bestelling);
+              deferred.resolve(bestelling);
+            })
+            .catch(function(response){
+              deferred.reject(response);
+            });
+            return deferred.promise;
+        }
+    }
+});
+
+
 //  Controller voor de BARCODE pagina
-applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner,$ionicPopup, $q, LeveringService, DatabaseService){
+applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner,$ionicPopup, $ionicLoading, LeveringService, DatabaseService){
 
     $scope.scanBarcode = function() {
         $cordovaBarcodeScanner.scan().then(function(imageData) {
-            
+           
             if (!imageData.cancelled && imageData.format=="QR_CODE" ){
-                console.log(LeveringService.getKlant());
-                var klant = LeveringService.getKlant();
-                if (klant["ordernr"] != null){
-                  Melding(klant);
-                }
-                else{
-                  console.log(klant);
-                }
+                
+                LeveringService.getBestellingAsync().then(function(Levering){
+                 
+                  Melding(Levering);
+                  console.log(Levering);
+                 })
+                 .catch(function(response){
+                    console.log(response.status);
+                 }); 
                 
             }
-
-            
-            
-            
-            
-        }, function(error) {
+          }, function(error) {
             console.log("An error happened -> " + error);
         });
     };
 
-    function Melding(Klant){
-      console.log( Klant );
-    var confirmPopup = $ionicPopup.confirm({
-                  title: 'Order nr ', // String. The title of the popup.
+    function Melding(levering){
+      console.log( levering );
+      var confirmPopup = $ionicPopup.confirm({
+                  title: 'Order nr ' + levering["klant"]["ordernr"], // String. The title of the popup.
                   cssClass: '', // String, The custom CSS class name
                   subTitle: 'Bent u zeker dat u deze levering wilt toevoegen?', // String (optional). The sub-title of the popup.
                   template: '', // String (optional). The html template to place in the popup body.
@@ -157,7 +240,7 @@ applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner,$io
 
              confirmPopup.then(function(res) {
                  if(res) {
-                   DatabaseService.setDB(Klant);
+                   DatabaseService.insertDB(levering);
                  
                  } else {
                  
@@ -170,10 +253,15 @@ applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner,$io
 
 applicatie.factory('DatabaseService', function($cordovaSQLite){
     return{
-            setDB: function(Klant){
-              
-                var query = "INSERT INTO leveringen (orderNr, naam, adres, status, nota, telefoon, bedrag) VALUES (?,?,?,?,?,?,?)";
-                $cordovaSQLite.execute(db, query, [ Klant["ordernr"], Klant["naam"],Klant["adres"],Klant["status"],Klant["nota"],Klant["telefoon"],Klant["bedrag"] ]).then(function(res) {
+            insertDB: function(levering){
+                var klant = {};
+                var bestelling = [];
+                console.log(levering["orderid"]);
+                klant = levering["klant"];
+                bestelling = levering["order"];
+                console.log(klant);
+                var query = "INSERT INTO leveringen (orderid, ordernr, bedrag, naam, adres, telefoon, nota, betaling, timestamp) VALUES (?,?,?,?,?,?,?,?,?)";
+                $cordovaSQLite.execute(db, query, [levering["orderid"], klant["ordernr"], klant["bedrag"],klant["naam"],klant["adres"],klant["telefoon"],klant["nota"],klant["betaling"], klant["timestamp"] ]).then(function(res) {
                   console.log("insertId: " + res.insertId);   // +" "+ String(res.data)
                 }, function (err) {
                   console.log(err);
@@ -183,7 +271,8 @@ applicatie.factory('DatabaseService', function($cordovaSQLite){
                var query = "DROP TABLE leveringen";
                 $cordovaSQLite.execute(db, query).then(function(res) {
                   console.log(res);   // +" "+ String(res.data)
-                  $cordovaSQLite.execute(db, "CREATE TABLE IF NOT EXISTS leveringen (orderNr text primary key, naam text, adres text, status text, nota text, telefoon text, bedrag text)");
+                 $cordovaSQLite.execute(db, "CREATE TABLE IF NOT EXISTS leveringen ( orderid integer primary key ,ordernr text, bedrag text, naam text, adres text, telefoon text, nota text, betaling text, timestamp text, bestelling text)");
+                  
 
                 }, function (err) {
                   console.log(err);
@@ -195,14 +284,15 @@ applicatie.factory('DatabaseService', function($cordovaSQLite){
               var levering = {};
               var query = "SELECT * FROM leveringen";
               $cordovaSQLite.execute(db, query).then(function(res) {
-                  
-                  for ( i=1; i< res.rows.length; i++){
-                    console.log("SELECTED -> " + res.rows.item(i).orderNr + " " + res.rows.item(i).naam + " " + res.rows.item(i).adres+ " " + res.rows.item(i).status+ " " + res.rows.item(i).nota  );
+
+                  for ( i=0; i< res.rows.length; i++){
+                    console.log("SELECTED -> " + res.rows.item(i).ordernr + " " + res.rows.item(i).naam + " " + res.rows.item(i).adres+ " " + res.rows.item(i).betaling+ " " + res.rows.item(i).nota  );
 
                     levering = {
-                      "itemid" : res.rows.item(i).orderNr,
-                      "name" : res.rows.item(i).naam,
-                      "address" : res.rows.item(i).adres
+                      "orderid" : res.rows.item(i).orderid,
+                      "ordernr" : res.rows.item(i).ordernr,
+                      "naam" : res.rows.item(i).naam,
+                      "adres" : res.rows.item(i).adres
                     };
                     leveringen.push(levering);
                     console.log(levering);
@@ -210,7 +300,22 @@ applicatie.factory('DatabaseService', function($cordovaSQLite){
 
                   console.log(leveringen);
 
-                  return leveringen;
+              }, function (err) {
+                  console.error(err);
+              });
+
+              return leveringen;
+            },
+
+            getKlant: function(orderID){
+
+              var query = "SELECT ordernr, bedrag, naam, adres, telefoon, nota, betaling, timestamp FROM leveringen WHERE orderid = ?";
+              $cordovaSQLite.execute(db, query, [orderID]).then(function(res) {
+                  if(res.rows.length > 0) {
+                      console.log("SELECTED -> " + res.rows.item(0).ordernr + " " + res.rows.item(0).naam);
+                  } else {
+                      console.log("No results found");
+                  }
               }, function (err) {
                   console.error(err);
               });
@@ -246,159 +351,151 @@ applicatie.controller("LeveringenCtrl", function($scope, DatabaseService){
     //   "address" : "Luikersteenweg 24 bus2.2"
     //   }
     // ];
-    var test = [
-       {
-     "itemid" : "13",
-     "name" : "Soufiane Salama",
-     "address" : "Trekschurenstraat 324"
-     }];
-     console.log(test);
+    console.log(DatabaseService.selectAll());
     $scope.items = DatabaseService.selectAll();
     
-    var test = [
-       {
-     "itemid" : "13",
-     "name" : "Soufiane Salama",
-     "address" : "Trekschurenstraat 324"
-     }];
-     console.log(test);
     
 });
 
 //  Controller voor de LEVERING pagina
-applicatie.controller("LeveringCtrl", function($scope, LeveringService){
-    
+applicatie.controller("LeveringCtrl", function($scope, LeveringService, $stateParams, DatabaseService ){
+    var orderID = 1;  //$stateParams.orderID;
     $scope.klant =  LeveringService.getKlant();
     $scope.items =  LeveringService.getBestelling();
- 
+    
+    DatabaseService.getKlant(orderID);
+
 });
 
 
-applicatie.factory('LeveringService', function($http){
+
+applicatie.factory('LocatieService', function(){
   
   return{
         
-        getKlant: function(){
-          var Klantinfo = {};
-          
-          $http.get("js/data2.json")
-            .success(function(data) {
-              var klant = data['klant'];
-              Klantinfo["ordernr"]= klant["ordernr"];
-              Klantinfo["bedrag"]= klant["bedrag"];
-              Klantinfo["naam"]= klant["naam"];
-              Klantinfo["adres"]= klant["adres"];
-              Klantinfo["telefoon"]= klant["telefoon"];
-              Klantinfo["status"]= klant["status"];
-              Klantinfo["nota"]= klant["notas"];
+        getCoor: function(adres){
+          var geocoder = new google.maps.Geocoder;
+          geocoder.geocode( { 'address': adres}, function(results, status) {
+            if (status == 'OK') {
+              alert(results[0].geometry.location);
               
-            })
-            .error(function(data) {
-                console.log("ERROR");
-            });
-
-          return Klantinfo;
-            
-        },
-
-        getBestelling: function(){
-
-            var Bestellinginfo = [];
-
-            $http.get("js/data2.json")
-            .success(function(data) {
-              var order = data['order'];
-
-              var arrayLength = order.length;
-              for (var i = 0; i < arrayLength; i++) {
-                  Bestellinginfo.push(order[i]);
-                  
-              }
-             
-            })
-            .error(function(data) {
-                console.log("ERROR");
-            });
-          
-           return Bestellinginfo;
+            } else {
+              alert('Geocode was not successful for the following reason: ' + status);
+            }
+          });
         }
-    }
+          
+    } 
 });
 
-
-
 //  Controller voor de Google Maps pagina
-applicatie.controller("MapCtrl", function($scope, $cordovaGeolocation){
-  
-  var options = {timeout: 10000, enableHighAccuracy: true};
- 
-  $cordovaGeolocation.getCurrentPosition(options).then(function(position){
- 
-    var latLng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-    var shopLatLng = new google.maps.LatLng(50.930997, 5.328689);   //stationsplein 11, HASSELT
-    var exDestLatLng = new google.maps.LatLng(50.932459, 5.350911);   //Example destination
+applicatie.controller("MapCtrl", function($scope, $cordovaGeolocation, $stateParams, LocatieService){
     
-    var mapOptions = {
-      center: latLng,
-      zoom: 15,
-      mapTypeId: google.maps.MapTypeId.ROADMAP
-    };
+    var bestemmingsAdres = $stateParams.adres;
+    var bestemmingsCoor = LocatieService.getCoor(bestemmingsAdres);
+    
+    alert(bestemmingsCoor);
+
+
+     
+
+      // var watchOptions = {
+      //   timeout : 3000,
+      //   enableHighAccuracy: false // may cause errors if true
+      // };
+
+      // var watch = $cordovaGeolocation.watchPosition(watchOptions);
+      // watch.then(
+      //   null,
+      //   function(err) {
+      //     // error
+      //   },
+      //   function(position) {
+      //     var lat  = position.coords.latitude
+      //     var long = position.coords.longitude
+      // });
+
+
+
+
+
+
+
+
+  // var options = {timeout: 10000, enableHighAccuracy: true};
  
-    var mapObject = new google.maps.Map(document.getElementById("map"), mapOptions);
-    $scope.map = mapObject;
+  // $cordovaGeolocation.getCurrentPosition(options).then(function(position){
+ 
+  //   var latLng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+  //   var shopLatLng = new google.maps.LatLng(50.930997, 5.328689);   //stationsplein 11, HASSELT
+  //   var exDestLatLng = new google.maps.LatLng(50.932459, 5.350911);   //Example destination
+    
+  //   var mapOptions = {
+  //     center: latLng,
+  //     zoom: 15,
+  //     mapTypeId: google.maps.MapTypeId.ROADMAP
+  //   };
+ 
+  //   var mapObject = new google.maps.Map(document.getElementById("map"), mapOptions);
+  //   $scope.map = mapObject;
 
 
-    var directionsService = new google.maps.DirectionsService();
-          var directionsRequest = {
-            origin: new google.maps.LatLng(position.coords.latitude, position.coords.longitude),
-            destination: new google.maps.LatLng(50.932459, 5.350911),
-            travelMode: google.maps.DirectionsTravelMode.DRIVING,
-            unitSystem: google.maps.UnitSystem.METRIC
-          };
-          directionsService.route(
-            directionsRequest,
-            function(response, status)
-            {
-              if (status == google.maps.DirectionsStatus.OK)
-              {
-                new google.maps.DirectionsRenderer({
-                  map: mapObject,
-                  directions: response,
-                  suppressMarkers:true
-                });
-              }
-              else
-                $("#error").append("Unable to retrieve your route<br />");
-            }
-          );
+  //   var directionsService = new google.maps.DirectionsService();
+  //         var directionsRequest = {
+  //           origin: new google.maps.LatLng(position.coords.latitude, position.coords.longitude),
+  //           destination: new google.maps.LatLng(50.932459, 5.350911),
+  //           travelMode: google.maps.DirectionsTravelMode.DRIVING,
+  //           unitSystem: google.maps.UnitSystem.METRIC
+  //         };
+  //         directionsService.route(
+  //           directionsRequest,
+  //           function(response, status)
+  //           {
+  //             if (status == google.maps.DirectionsStatus.OK)
+  //             {
+  //               new google.maps.DirectionsRenderer({
+  //                 map: mapObject,
+  //                 directions: response,
+  //                 suppressMarkers:true
+  //               });
+  //             }
+  //             else
+  //               $("#error").append("Unable to retrieve your route<br />");
+  //           }
+  //         );
 
 
-    var shopIconUrl = "img/logoSmall.png";
-    var positionIconUrl="img/deliveryIcon.png";
-    var destinationIconUrl="img/destinationIcon.png";
+  //   var shopIconUrl = "img/logoSmall.png";
+  //   var positionIconUrl="img/deliveryIcon.png";
+  //   var destinationIconUrl="img/destinationIcon.png";
 
-    var shopMarker = new google.maps.Marker({
-        map: $scope.map,
-        animation: google.maps.Animation.DROP,
-        position: new google.maps.LatLng(50.930997, 5.328689),
-        icon: shopIconUrl
-    });   
-    var marker = new google.maps.Marker({
-        map: $scope.map,
-        animation: google.maps.Animation.DROP,
-        position: new google.maps.LatLng(position.coords.latitude, position.coords.longitude),
-        icon: positionIconUrl
-    }); 
-    var marker = new google.maps.Marker({
-        map: $scope.map,
-        animation: google.maps.Animation.DROP,
-        position:  new google.maps.LatLng(50.932459, 5.350911),
-        icon: destinationIconUrl
-    }); 
+  //   var shopMarker = new google.maps.Marker({
+  //       map: $scope.map,
+  //       animation: google.maps.Animation.DROP,
+  //       position: new google.maps.LatLng(50.930997, 5.328689),
+  //       icon: shopIconUrl
+  //   });   
+  //   var marker = new google.maps.Marker({
+  //       map: $scope.map,
+  //       animation: google.maps.Animation.DROP,
+  //       position: new google.maps.LatLng(position.coords.latitude, position.coords.longitude),
+  //       icon: positionIconUrl
+  //   }); 
+  //   var marker = new google.maps.Marker({
+  //       map: $scope.map,
+  //       animation: google.maps.Animation.DROP,
+  //       position:  new google.maps.LatLng(50.932459, 5.350911),
+  //       icon: destinationIconUrl
+  //   }); 
 
-  }, function(error){
-    alert.log("Uw locatie niet gevonden!");
-  });
+  // }, function(error){
+  //   alert.log("Uw locatie niet gevonden!");
+  // });
+
+
+
+      
+  
 
 
 }); 

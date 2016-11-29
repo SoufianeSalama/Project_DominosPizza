@@ -1,13 +1,15 @@
 {
+  "orderid":"100",
+  "status":"OK",
   "klant": {
-    "ordernr": "53",
+    "ordernr": "55",
     "bedrag": "23,21",
     "naam": "Elise van Beek",
     "adres": "Luikersteenweg 25, HASSELT",
-    "stad": "Hasselt",
-    "status": "Betaald",
     "telefoon" : "0422556633",
-    "notas" : "Aanbellen bij Reekmans"
+    "nota" : "Aanbellen bij Reekmans",
+    "betaling": "Betaald",    
+    "timestamp" : "1480285099"
   },
   "order": [
     "10 inch Hawai",
