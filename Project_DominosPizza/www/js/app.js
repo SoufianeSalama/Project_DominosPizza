@@ -127,44 +127,44 @@ applicatie.factory('LeveringService', function($http, $q){
   
   return{
         
-        getKlant: function(){
-          var Klantinfo = {};
+        // getKlant: function(){
+        //   var Klantinfo = {};
           
-          $http.get("js/data2.json")
-            .success(function(data) {
-              var klant = data['klant'];
-              Klantinfo = klant;
+        //   $http.get("js/data2.json")
+        //     .success(function(data) {
+        //       var klant = data['klant'];
+        //       Klantinfo = klant;
               
-            })
-            .error(function(data) {
-                console.log("ERROR");
-            });
+        //     })
+        //     .error(function(data) {
+        //         console.log("ERROR");
+        //     });
 
-          return Klantinfo;
+        //   return Klantinfo;
             
-        },
+        // },
 
-        getBestelling: function(){
+        // getBestelling: function(){
 
-            var Bestellinginfo = [];
+        //     var Bestellinginfo = [];
 
-            $http.get("js/data2.json")
-            .success(function(data) {
-              var order = data['order'];
+        //     $http.get("js/data2.json")
+        //     .success(function(data) {
+        //       var order = data['order'];
 
-              var arrayLength = order.length;
-              for (var i = 0; i < arrayLength; i++) {
-                  Bestellinginfo.push(order[i]);
+        //       var arrayLength = order.length;
+        //       for (var i = 0; i < arrayLength; i++) {
+        //           Bestellinginfo.push(order[i]);
                   
-              }
+        //       }
              
-            })
-            .error(function(data) {
-                console.log("ERROR");
-            });
+        //     })
+        //     .error(function(data) {
+        //         console.log("ERROR");
+        //     });
           
-           return Bestellinginfo;
-        },
+        //    return Bestellinginfo;
+        // },
 
         getBestellingAsync : function() {
           var Bestellinginfo = {};
@@ -226,8 +226,6 @@ applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner,$io
              confirmPopup.then(function(res) {
                  if(res) {
                    DatabaseService.insertDB(levering);
-                 
-                 } else {
                  
                  }
             });
@@ -352,11 +350,7 @@ applicatie.factory('DatabaseService', function($cordovaSQLite, $q){
 
 //  Controller voor de LEVERINGEN pagina
 applicatie.controller("LeveringenCtrl", function($scope, DatabaseService){
-
-
     $scope.items = DatabaseService.selectAll();
-    
-    
 });
 
 //  Controller voor de LEVERING pagina
@@ -384,20 +378,27 @@ applicatie.controller("LeveringCtrl", function($scope, LeveringService, $statePa
 
 
 
-applicatie.factory('LocatieService', function(){
+applicatie.factory('LocatieService', function($q){
   
   return{
         
         getCoor: function(adres){
+          var deferred = $q.defer();
+          var coordinaten = "";
           var geocoder = new google.maps.Geocoder;
           geocoder.geocode( { 'address': adres}, function(results, status) {
             if (status == 'OK') {
-              alert(results[0].geometry.location);
-              
+              coordinaten = results[0].geometry.location;
+              console.log(coordinaten);
+              deferred.resolve(coordinaten);
+
             } else {
-              alert('Geocode was not successful for the following reason: ' + status);
+              //alert('Geocode was not successful for the following reason: ' + status);
+              deferred.reject(status);
             }
           });
+
+          return deferred.promise;
         }
           
     } 
@@ -405,114 +406,87 @@ applicatie.factory('LocatieService', function(){
 
 //  Controller voor de Google Maps pagina
 applicatie.controller("MapCtrl", function($scope, $cordovaGeolocation, $stateParams, LocatieService){
-    
+    var coordinaten = "";
     var bestemmingsAdres = $stateParams.adres;
-    var bestemmingsCoor = LocatieService.getCoor(bestemmingsAdres);
-    
-    alert(bestemmingsCoor);
+   
+    LocatieService.getCoor(bestemmingsAdres).then(function(res){
+               
+      coordinaten = res;
 
-
-     
-
-      // var watchOptions = {
-      //   timeout : 3000,
-      //   enableHighAccuracy: false // may cause errors if true
-      // };
-
-      // var watch = $cordovaGeolocation.watchPosition(watchOptions);
-      // watch.then(
-      //   null,
-      //   function(err) {
-      //     // error
-      //   },
-      //   function(position) {
-      //     var lat  = position.coords.latitude
-      //     var long = position.coords.longitude
-      // });
-
-
-
-
-
-
-
-
-  // var options = {timeout: 10000, enableHighAccuracy: true};
- 
-  // $cordovaGeolocation.getCurrentPosition(options).then(function(position){
- 
-  //   var latLng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-  //   var shopLatLng = new google.maps.LatLng(50.930997, 5.328689);   //stationsplein 11, HASSELT
-  //   var exDestLatLng = new google.maps.LatLng(50.932459, 5.350911);   //Example destination
-    
-  //   var mapOptions = {
-  //     center: latLng,
-  //     zoom: 15,
-  //     mapTypeId: google.maps.MapTypeId.ROADMAP
-  //   };
- 
-  //   var mapObject = new google.maps.Map(document.getElementById("map"), mapOptions);
-  //   $scope.map = mapObject;
-
-
-  //   var directionsService = new google.maps.DirectionsService();
-  //         var directionsRequest = {
-  //           origin: new google.maps.LatLng(position.coords.latitude, position.coords.longitude),
-  //           destination: new google.maps.LatLng(50.932459, 5.350911),
-  //           travelMode: google.maps.DirectionsTravelMode.DRIVING,
-  //           unitSystem: google.maps.UnitSystem.METRIC
-  //         };
-  //         directionsService.route(
-  //           directionsRequest,
-  //           function(response, status)
-  //           {
-  //             if (status == google.maps.DirectionsStatus.OK)
-  //             {
-  //               new google.maps.DirectionsRenderer({
-  //                 map: mapObject,
-  //                 directions: response,
-  //                 suppressMarkers:true
-  //               });
-  //             }
-  //             else
-  //               $("#error").append("Unable to retrieve your route<br />");
-  //           }
-  //         );
-
-
-  //   var shopIconUrl = "img/logoSmall.png";
-  //   var positionIconUrl="img/deliveryIcon.png";
-  //   var destinationIconUrl="img/destinationIcon.png";
-
-  //   var shopMarker = new google.maps.Marker({
-  //       map: $scope.map,
-  //       animation: google.maps.Animation.DROP,
-  //       position: new google.maps.LatLng(50.930997, 5.328689),
-  //       icon: shopIconUrl
-  //   });   
-  //   var marker = new google.maps.Marker({
-  //       map: $scope.map,
-  //       animation: google.maps.Animation.DROP,
-  //       position: new google.maps.LatLng(position.coords.latitude, position.coords.longitude),
-  //       icon: positionIconUrl
-  //   }); 
-  //   var marker = new google.maps.Marker({
-  //       map: $scope.map,
-  //       animation: google.maps.Animation.DROP,
-  //       position:  new google.maps.LatLng(50.932459, 5.350911),
-  //       icon: destinationIconUrl
-  //   }); 
-
-  // }, function(error){
-  //   alert.log("Uw locatie niet gevonden!");
-  // });
-
-
-
-      
+    })
+    .catch(function(response){
+        console.log(response.status);
+     });               
   
+  var options = {timeout: 10000, enableHighAccuracy: true};
+ 
+  $cordovaGeolocation.getCurrentPosition(options).then(function(position){
+ 
+    var latLng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+    var shopLatLng = new google.maps.LatLng(50.930997, 5.328689);   //stationsplein 11, HASSELT
+    var exDestLatLng = coordinaten;   //Example destination
+    
+    var mapOptions = {
+      center: latLng,
+      zoom: 15,
+      mapTypeId: google.maps.MapTypeId.ROADMAP
+    };
+ 
+    var mapObject = new google.maps.Map(document.getElementById("map"), mapOptions);
+    $scope.map = mapObject;
 
 
+    var directionsService = new google.maps.DirectionsService();
+          var directionsRequest = {
+            origin: new google.maps.LatLng(position.coords.latitude, position.coords.longitude),
+            destination: coordinaten,
+            travelMode: google.maps.DirectionsTravelMode.DRIVING, //BICYCLING 
+            unitSystem: google.maps.UnitSystem.METRIC
+          };
+          directionsService.route(
+            directionsRequest,
+            function(response, status)
+            {
+              if (status == google.maps.DirectionsStatus.OK)
+              {
+                new google.maps.DirectionsRenderer({
+                  map: mapObject,
+                  directions: response,
+                  suppressMarkers:true
+                });
+              }
+              else
+                alert("Kan geen route vinden");
+            }
+          );
+
+
+    var shopIconUrl = "img/logoSmall.png";
+    var positionIconUrl="img/deliveryIcon.png";
+    var destinationIconUrl="img/destinationIcon.png";
+
+    var shopMarker = new google.maps.Marker({
+        map: $scope.map,
+        animation: google.maps.Animation.DROP,
+        position: new google.maps.LatLng(50.930997, 5.328689),
+        icon: shopIconUrl
+    });   
+    var marker = new google.maps.Marker({
+        map: $scope.map,
+        animation: google.maps.Animation.DROP,
+        position: new google.maps.LatLng(position.coords.latitude, position.coords.longitude),
+        icon: positionIconUrl
+    }); 
+    var marker = new google.maps.Marker({
+        map: $scope.map,
+        animation: google.maps.Animation.DROP,
+        position:  coordinaten,
+        icon: destinationIconUrl
+    }); 
+
+  }, function(error){
+    alert.log("Uw locatie niet gevonden!");
+  });
 }); 
 
 //  Controller voor de LEVERING pagina
@@ -529,26 +503,13 @@ applicatie.controller("HulpCtrl", function($scope, $cordovaGeolocation, $ionicPo
             geocoder.geocode({'location': latlng}, function(results, status) {
               if (status === 'OK') {
                 if (results[1]) {
-                  // map.setZoom(11);
-                  // var marker = new google.maps.Marker({
-                  //   position: latlng,
-                  //   map: map
-                  // });
-                  // infowindow.setContent(results[1].formatted_address);
-                  // infowindow.open(map, marker);
-                  console.log(results[1].address_components[1]); 
-                  console.log(results[1].address_components[2]);    //results[1].formatted_address => Hasselt, Belgie
-                  console.log(results[1].address_components[3]); 
-                  console.log(results[1].address_components[0]); 
-                  console.log(results[1]); 
-
-                  var alertPopup = $ionicPopup.alert({
-                     title: 'U bent in de buurt van:',
-                     template: results[1].formatted_address
+                    var alertPopup = $ionicPopup.alert({
+                    title: 'U bent in de buurt van:',
+                    template: results[1].formatted_address
                   });
 
                 } else {
-                  window.alert('No results found');
+                  alert('Geen resultaten gevonden');
                 }
               } else {
                 window.alert('Geocoder failed due to: ' + status);
