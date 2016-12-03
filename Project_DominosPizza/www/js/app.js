@@ -38,6 +38,10 @@ applicatie.config(function($stateProvider, $urlRouterProvider){
       url:'/map/:adres',
       templateUrl:'templates/map.html',
       controller:'MapCtrl'
+    })
+     .state('instellingen',{
+      url:'/instellingen',
+      templateUrl:'templates/instellingen.html'
     });
 
     $urlRouterProvider.otherwise('/home');
@@ -169,7 +173,7 @@ applicatie.factory('LeveringService', function($http, $q){
         getBestellingAsync : function() {
           var Bestellinginfo = {};
             var deferred = $q.defer();
-            $http.get('js/data2.json')
+            $http.get('js/data.json')
             .then(function(response){
               var bestelling = response["data"];
               
@@ -187,21 +191,32 @@ applicatie.factory('LeveringService', function($http, $q){
 
 
 //  Controller voor de BARCODE pagina
-applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner,$ionicPopup, $ionicLoading, LeveringService, DatabaseService){
+applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner,$ionicPopup, $ionicLoading, LeveringService, DatabaseService, $state){
 
     $scope.scanBarcode = function() {
         $cordovaBarcodeScanner.scan().then(function(imageData) {
            
             if (!imageData.cancelled && imageData.format=="QR_CODE" ){
                 
-                LeveringService.getBestellingAsync().then(function(Levering){
-                 
-                  Melding(Levering);
-                  console.log(Levering);
-                 })
-                 .catch(function(response){
-                    console.log(response.status);
-                 }); 
+                LeveringService.getBestellingAsync().then(function(levering){ 
+
+                  DatabaseService.getKlantAsync(levering["orderid"]).then(function(result){ 
+                      console.log(result);
+                      if (result == false){
+                        MeldingToevoegen(levering);
+                      }
+                      else{
+                        MeldingAlert(levering);
+                      }
+                  })
+                  .catch(function(response){
+                          console.log(response.status);
+                  });
+                })
+                .catch(function(response){
+                            console.log(response.status);
+                });
+
                 
             }
           }, function(error) {
@@ -209,26 +224,31 @@ applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner,$io
         });
     };
 
-    function Melding(levering){
+
+    function MeldingToevoegen(levering){
       console.log( levering );
       var confirmPopup = $ionicPopup.confirm({
-                  title: 'Order nr ' + levering["klant"]["ordernr"], // String. The title of the popup.
-                  cssClass: '', // String, The custom CSS class name
-                  subTitle: 'Bent u zeker dat u deze levering wilt toevoegen?', // String (optional). The sub-title of the popup.
-                  template: '', // String (optional). The html template to place in the popup body.
-                  templateUrl: '', // String (optional). The URL of an html template to place in the popup   body.
-                  cancelText: 'Annuleer', // String (default: 'Cancel'). The text of the Cancel button.
-                  cancelType: 'button-assertive', // String (default: 'button-default'). The type of the Cancel button.
-                  okText: 'Toevoegen', // String (default: 'OK'). The text of the OK button.
-                  okType: 'button-positive', // String (default: 'button-positive'). The type of the OK button.
+                  title: 'Order nr ' + levering["klant"]["ordernr"], 
+                  subTitle: 'Bent u zeker dat u deze levering wilt toevoegen?',
+                  cancelText: 'Annuleer',
+                  cancelType: 'button-assertive', 
+                  okText: 'Toevoegen',
+                  okType: 'button-positive',
               });
 
              confirmPopup.then(function(res) {
                  if(res) {
-                   DatabaseService.insertDB(levering);
-                 
+                    DatabaseService.insertDB(levering);
                  }
             });
+
+  };
+
+      function MeldingAlert(levering){
+        var alertPopup = $ionicPopup.alert({
+             title: 'Order nr ' + levering["klant"]["ordernr"],
+             template: 'Deze levering zit al in het systeem'
+           });
 
       };
     
@@ -309,13 +329,17 @@ applicatie.factory('DatabaseService', function($cordovaSQLite, $q){
                       "nota" : res.rows.item(0).nota
                     };
 
-                    deferred.resolve(klant);
+                    
                   } else {
-                      console.log("No results found");
+                      // console.log("No results found");
+                      klant = false;  
                   }
+
+                  deferred.resolve(klant);
               }, function (err) {
                   console.error(err);
-                  deferred.reject(err);
+                  var error = false;
+                  deferred.reject(error);
               }); 
 
               return deferred.promise;
@@ -325,7 +349,7 @@ applicatie.factory('DatabaseService', function($cordovaSQLite, $q){
             getOrderAsync: function(orderID){
               var deferred = $q.defer();
               var order = [];
-              var query = "SELECT  bestelling FROM leveringen WHERE orderid = ?";
+              var query = "SELECT bestelling FROM leveringen WHERE orderid = ?";
               $cordovaSQLite.execute(db, query, [orderID]).then(function(res) {
                   if(res.rows.length > 0) {
                       console.log("SELECTED -> " + res.rows.item(0).bestelling);

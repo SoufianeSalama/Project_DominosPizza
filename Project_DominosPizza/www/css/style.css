@@ -29,3 +29,7 @@ body{
 	
 	background-image: url("../img/bg_white.jpg");
 }
+
+.button.button-royal{
+	background-color: 	#3b5998 !important;
+}
