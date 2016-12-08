@@ -1,24 +1,26 @@
-<ion-view view-title="Instellingen">
+<ion-view view-title="Instellingen" class="ja" >
     <ion-content>
 
         <div class="list card">
 
           <div class="item item-avatar">
-            <img src="avatar.jpg">
+            <img src="../img/hoofd.jpg">
             <h2>Soufiane Salama</h2>
-            <!-- <p>Nine Inch Nails</p> -->
           </div>
+          
 
-          <button class="button button-block button-outline button-positive icon-left ion-social-facebook" style="color:#3b5998">
+          <button class="button button-block button-positive icon-left ion-social-facebook" style="color:#3b5998">
              Uitloggen
             </button>
 
         </div>
 
         <br><br><br>
-        <button class="button button-block button-outline button-large button-assertive">
-              Leveringen verwijderen
-            </button>
-    </ion-content>
+        <div id="content">
+          <button ng-click="dropTabel()" class="button button-block button-large button-assertive">
+                Leveringen verwijderen
+           </button>
+        </div>
+    </ion-content> 
 
 </ion-view> 

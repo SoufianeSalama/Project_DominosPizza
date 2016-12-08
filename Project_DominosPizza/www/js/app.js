@@ -41,7 +41,9 @@ applicatie.config(function($stateProvider, $urlRouterProvider){
     })
      .state('instellingen',{
       url:'/instellingen',
-      templateUrl:'templates/instellingen.html'
+      templateUrl:'templates/instellingen.html',
+      controller:'InstellingenCtrl'
+
     });
 
     $urlRouterProvider.otherwise('/home');
@@ -111,65 +113,12 @@ applicatie.run(function($ionicPlatform, $ionicPopup, $cordovaSQLite) {
 
 applicatie.controller("HomeCtrl", function($scope, $cordovaSQLite, DatabaseService){
 
-    $scope.drop = function() {
-        //DatabaseService.dropTabel();
-        DatabaseService.dropTabel();
-
-
-    }
-
-    $scope.show = function() {
-        //DatabaseService.dropTabel();
-        DatabaseService.selectAll();
-
-
-    }
 });
 
 
 applicatie.factory('LeveringService', function($http, $q){
   
   return{
-        
-        // getKlant: function(){
-        //   var Klantinfo = {};
-          
-        //   $http.get("js/data2.json")
-        //     .success(function(data) {
-        //       var klant = data['klant'];
-        //       Klantinfo = klant;
-              
-        //     })
-        //     .error(function(data) {
-        //         console.log("ERROR");
-        //     });
-
-        //   return Klantinfo;
-            
-        // },
-
-        // getBestelling: function(){
-
-        //     var Bestellinginfo = [];
-
-        //     $http.get("js/data2.json")
-        //     .success(function(data) {
-        //       var order = data['order'];
-
-        //       var arrayLength = order.length;
-        //       for (var i = 0; i < arrayLength; i++) {
-        //           Bestellinginfo.push(order[i]);
-                  
-        //       }
-             
-        //     })
-        //     .error(function(data) {
-        //         console.log("ERROR");
-        //     });
-          
-        //    return Bestellinginfo;
-        // },
-
         getBestellingAsync : function() {
           var Bestellinginfo = {};
             var deferred = $q.defer();
@@ -242,15 +191,15 @@ applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner,$io
                  }
             });
 
-  };
+    };
 
-      function MeldingAlert(levering){
+    function MeldingAlert(levering){
         var alertPopup = $ionicPopup.alert({
              title: 'Order nr ' + levering["klant"]["ordernr"],
              template: 'Deze levering zit al in het systeem'
            });
 
-      };
+    };
     
 });
 
@@ -383,7 +332,7 @@ applicatie.controller("LeveringCtrl", function($scope, LeveringService, $statePa
     
     DatabaseService.getKlantAsync(orderID).then(function(res){
                  
-      $scope.klant =res;
+      $scope.klant = res;
     })
     .catch(function(response){
         console.log(response.status);
@@ -400,12 +349,45 @@ applicatie.controller("LeveringCtrl", function($scope, LeveringService, $statePa
                   
 });
 
+//  Controller voor de INSTELLINGEN pagina
+applicatie.controller("InstellingenCtrl", function($scope, DatabaseService,$ionicPopup ){
+     $scope.dropTabel = function() {
 
-
-applicatie.factory('LocatieService', function($q){
-  
-  return{
+       var confirmPopup = $ionicPopup.confirm({
+          title: 'Waarschuwing',
+          subTitle: 'Bent u zeker dat u alle leveringen wilt verwijderen?',
+          cancelText: 'Annuleer',
+      
+          okText: 'Verwijderen',
+          okType: 'button-assertive',
+       });
         
+        confirmPopup.then(function(res) {
+            if(res) {
+               DatabaseService.dropTabel();
+            }
+        });
+        
+    }
+});
+
+applicatie.factory('LocatieService', function($q, $cordovaGeolocation){
+  
+  var markers = [];
+  return{
+        getLocatie : function(){
+          var deferred = $q.defer();
+          var options = {timeout: 10000, enableHighAccuracy: true};
+ 
+          $cordovaGeolocation.getCurrentPosition(options).then(function(position){
+              deferred.resolve(position);
+
+          }, function(error){
+            deferred.reject(error);
+          });
+          return deferred.promise;
+        },
+
         getCoor: function(adres){
           var deferred = $q.defer();
           var coordinaten = "";
@@ -423,50 +405,45 @@ applicatie.factory('LocatieService', function($q){
           });
 
           return deferred.promise;
-        }
-          
-    } 
-});
-
-//  Controller voor de Google Maps pagina
-applicatie.controller("MapCtrl", function($scope, $cordovaGeolocation, $stateParams, LocatieService){
-    var coordinaten = "";
-    var bestemmingsAdres = $stateParams.adres;
-   
-    LocatieService.getCoor(bestemmingsAdres).then(function(res){
-               
-      coordinaten = res;
-
-    })
-    .catch(function(response){
-        console.log(response.status);
-     });               
-  
-  var options = {timeout: 10000, enableHighAccuracy: true};
+        },
+        getAdres: function(){ //mapObject, startCo, bestemmingCo
+          var deferred = $q.defer();
+          var options = {timeout: 10000, enableHighAccuracy: true};
  
-  $cordovaGeolocation.getCurrentPosition(options).then(function(position){
- 
-    var latLng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-    var shopLatLng = new google.maps.LatLng(50.930997, 5.328689);   //stationsplein 11, HASSELT
-    var exDestLatLng = coordinaten;   //Example destination
-    
-    var mapOptions = {
-      center: latLng,
-      zoom: 15,
-      mapTypeId: google.maps.MapTypeId.ROADMAP
-    };
- 
-    var mapObject = new google.maps.Map(document.getElementById("map"), mapOptions);
-    $scope.map = mapObject;
+          $cordovaGeolocation.getCurrentPosition(options).then(function(position){
+              var geocoder = new google.maps.Geocoder;
+              var latlng = {lat: position.coords.latitude, lng: position.coords.longitude};
+              geocoder.geocode({'location': latlng}, function(results, status) {
+                if (status === 'OK') {
 
+                    if (results[1]) {
+                      deferred.resolve(results[1]);
+                       
+                    } else {
+                     deferred.reject(status);
+                    }
 
-    var directionsService = new google.maps.DirectionsService();
+                } else {
+                 deferred.reject(status);
+                }
+              });
+
+          }, function(error){
+            alert.log("Uw locatie niet gevonden!");
+          });
+
+          return deferred.promise;
+        },
+
+        setRoute: function(mapObject, startCo,bestemmingCo){
+          var directionsService = new google.maps.DirectionsService();
           var directionsRequest = {
-            origin: new google.maps.LatLng(position.coords.latitude, position.coords.longitude),
-            destination: coordinaten,
+            origin: startCo,
+            destination: bestemmingCo,
             travelMode: google.maps.DirectionsTravelMode.DRIVING, //BICYCLING 
             unitSystem: google.maps.UnitSystem.METRIC
           };
+
           directionsService.route(
             directionsRequest,
             function(response, status)
@@ -483,68 +460,169 @@ applicatie.controller("MapCtrl", function($scope, $cordovaGeolocation, $statePar
                 alert("Kan geen route vinden");
             }
           );
+        },
+
+        setMarkers: function(mapObject, huidigePos,bestemmingCo, keuze){
+
+            var shopIconUrl = "img/logoSmall.png";
+            var positionIconUrl="img/deliveryIcon.png";
+            var destinationIconUrl="img/destinationIcon.png";
+          if (keuze){
+            
+
+            var winkelMarker = new google.maps.Marker({
+                map: mapObject,
+                animation: google.maps.Animation.DROP,
+                position: new google.maps.LatLng(50.930997, 5.328689),
+                icon: shopIconUrl
+            });   
+           
+            var bestemmingMarker = new google.maps.Marker({
+                map: mapObject,
+                animation: google.maps.Animation.DROP,
+                position:  bestemmingCo,
+                icon: destinationIconUrl
+            }); 
+
+             var positieMarker = new google.maps.Marker({
+                map: mapObject,
+                animation: google.maps.Animation.DROP,
+                position: huidigePos,
+                icon: positionIconUrl
+            }); 
+
+             markers.push(winkelMarker);
+             markers.push(bestemmingMarker);
+             markers.push(positieMarker);
+
+          }
+          else{
+
+             var positieMarker = new google.maps.Marker({
+                map: mapObject,
+                animation: google.maps.Animation.DROP,
+                position: huidigePos,
+                icon: positionIconUrl
+            }); 
+
+             markers.push(positieMarker);
+          }
+        },
+
+        deleteMarkers: function(){
+          console.log(markers);
+           for (var i = 0; i < markers.length; i++) {
+              
+              if (i>1){
+                console.log(i + " leeg");
+                markers[i].setMap(null);
+              }
+            }
+        }
 
 
-    var shopIconUrl = "img/logoSmall.png";
-    var positionIconUrl="img/deliveryIcon.png";
-    var destinationIconUrl="img/destinationIcon.png";
+      
+          
+    } 
+});
 
-    var shopMarker = new google.maps.Marker({
-        map: $scope.map,
-        animation: google.maps.Animation.DROP,
-        position: new google.maps.LatLng(50.930997, 5.328689),
-        icon: shopIconUrl
-    });   
-    var marker = new google.maps.Marker({
-        map: $scope.map,
-        animation: google.maps.Animation.DROP,
-        position: new google.maps.LatLng(position.coords.latitude, position.coords.longitude),
-        icon: positionIconUrl
+//  Controller voor de Google Maps pagina
+applicatie.controller("MapCtrl", function($scope, $cordovaGeolocation, $stateParams, LocatieService, $ionicPopup){
+   
+    var mapObject="";  
+    var locatie="";
+    var bestemmingCoordinaten = "";
+    var watchLocatie ="";
+
+    //  Async methode om de locatie op te halen
+    LocatieService.getLocatie().then(function(position){
+        //Map tonen
+        locatie = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+        var mapOptions = {
+          center: locatie,
+          zoom: 15,
+          mapTypeId: google.maps.MapTypeId.ROADMAP,
+          disableDefaultUI: true
+        };
+ 
+        mapObject = new google.maps.Map(document.getElementById("map"), mapOptions);
+        $scope.map = mapObject;
+
+
+        var bestemmingsAdres = $stateParams.adres;
+        //  Async methode om het bestemmingsadres om te zetten naar coordinater mbv geocode
+        LocatieService.getCoor(bestemmingsAdres).then(function(bestemmingCo){
+            bestemmingCoordinaten = bestemmingCo;
+            //als de coordinaten van het bestemmingsadres binnen zijn, wordt de route op de kaart gezet
+            LocatieService.setRoute(mapObject, locatie,bestemmingCo);
+
+            //Markers op de kaart tonen (Winkel, HuidigeLocatie, Klant)
+            LocatieService.setMarkers(mapObject, locatie,bestemmingCo, true);
+
+            startWatchPosition();
+
+        })
+        .catch(function(response){
+           var alertPopup = $ionicPopup.alert({
+                 title: 'Kan locatie van bestemming niet vinden',
+                 template: response
+            });
+        }); 
+    })
+    .catch(function(response){
+       var alertPopup = $ionicPopup.alert({
+             title: 'Locatie niet gevonden',
+             template: response
+        });
     }); 
-    var marker = new google.maps.Marker({
-        map: $scope.map,
-        animation: google.maps.Animation.DROP,
-        position:  coordinaten,
-        icon: destinationIconUrl
-    }); 
 
-  }, function(error){
-    alert.log("Uw locatie niet gevonden!");
-  });
+    function startWatchPosition(){
+
+      var watchOptions = {
+        timeout : 20000,
+        enableHighAccuracy: false // may cause errors if true
+      };
+
+      var watch = $cordovaGeolocation.watchPosition(watchOptions);
+      watch.then(
+        null,
+        function(err) {
+          console.log(error)
+        },
+        function(position) {
+            console.log("change: " + position);
+            LocatieService.deleteMarkers();
+
+             watchLocatie = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+
+            // Markers op de kaart tonen (Winkel, HuidigeLocatie, Klant)
+            LocatieService.setMarkers(mapObject, watchLocatie,bestemmingCoordinaten, false);
+      });
+    }
+
+    
+ 
 }); 
 
 //  Controller voor de LEVERING pagina
-applicatie.controller("HulpCtrl", function($scope, $cordovaGeolocation, $ionicPopup, $cordovaFlashlight){
+applicatie.controller("HulpCtrl", function($scope,  $ionicPopup, $cordovaFlashlight, LocatieService){
 
     $scope.getLocation = function(){
 
-        var options = {timeout: 10000, enableHighAccuracy: true};
- 
-        $cordovaGeolocation.getCurrentPosition(options).then(function(position){
-            console.log(position);
-            var geocoder = new google.maps.Geocoder;
-            var latlng = {lat: position.coords.latitude, lng: position.coords.longitude};
-            geocoder.geocode({'location': latlng}, function(results, status) {
-              if (status === 'OK') {
-                if (results[1]) {
-                    var alertPopup = $ionicPopup.alert({
+        LocatieService.getAdres().then(function(res){
+               
+            var alertPopup = $ionicPopup.alert({
                     title: 'U bent in de buurt van:',
-                    template: results[1].formatted_address
-                  });
-
-                } else {
-                  alert('Geen resultaten gevonden');
-                }
-              } else {
-                window.alert('Geocoder failed due to: ' + status);
-              }
+                    template: res.formatted_address
             });
-
-        }, function(error){
-          alert.log("Uw locatie niet gevonden!");
-        });
- 
-    };
+        })
+        .catch(function(response){
+            console.log(response.status);
+         });  
+     
+        };
+       
+   
 
     $scope.toggleFlashlight = function(){
       $cordovaFlashlight.toggle()
@@ -555,9 +633,7 @@ applicatie.controller("HulpCtrl", function($scope, $cordovaGeolocation, $ionicPo
           }
         );
     };
-
-
-    
+  
 });
 
 
