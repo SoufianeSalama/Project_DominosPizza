@@ -3,7 +3,7 @@
 // angular.module is a global place for creating, registering and retrieving Angular modules
 // 'starter' is the name of this angular module example (also set in a <body> attribute in index.html)
 // the 2nd parameter is an array of 'requires'
-var applicatie = angular.module('starter', ['ionic', 'ngCordova']);
+var applicatie = angular.module('starter', ['ionic', 'ngCordova', 'Services', 'ngStorage']);
 var db = null;
 
 applicatie.config(function($stateProvider, $urlRouterProvider){
@@ -44,6 +44,11 @@ applicatie.config(function($stateProvider, $urlRouterProvider){
       templateUrl:'templates/instellingen.html',
       controller:'InstellingenCtrl'
 
+    })
+     .state('telefoonnummers',{
+      url:'/telefoonnummers',
+      templateUrl:'templates/telefoonnummers.html',
+      controller:'TelefoonCtrl'
     });
 
     $urlRouterProvider.otherwise('/home');
@@ -115,30 +120,6 @@ applicatie.controller("HomeCtrl", function($scope, $cordovaSQLite, DatabaseServi
 
 });
 
-
-applicatie.factory('LeveringService', function($http, $q){
-  
-  return{
-        getBestellingAsync : function() {
-          var Bestellinginfo = {};
-            var deferred = $q.defer();
-            $http.get('js/data.json')
-            .then(function(response){
-              var bestelling = response["data"];
-              
-              console.log(bestelling);
-              deferred.resolve(bestelling);
-            })
-            .catch(function(response){
-              deferred.reject(response);
-            });
-
-            return deferred.promise;
-        }
-    }
-});
-
-
 //  Controller voor de BARCODE pagina
 applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner,$ionicPopup, $ionicLoading, LeveringService, DatabaseService, $state){
 
@@ -147,7 +128,8 @@ applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner,$io
            
             if (!imageData.cancelled && imageData.format=="QR_CODE" ){
                 
-                LeveringService.getBestellingAsync().then(function(levering){ 
+                console.log(imageData);
+                LeveringService.getBestellingAsync(imageData.text).then(function(levering){ 
 
                   DatabaseService.getKlantAsync(levering["orderid"]).then(function(result){ 
                       console.log(result);
@@ -203,127 +185,28 @@ applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner,$io
     
 });
 
-applicatie.factory('DatabaseService', function($cordovaSQLite, $q){
-    return{
-            insertDB: function(levering){
-                var klant = {};
-                var bestelling = [];
-                
-                klant = levering["klant"];
-                bestelling = angular.toJson(levering["order"]);
-                
-                var query = "INSERT INTO leveringen (orderid, ordernr, bedrag, naam, adres, telefoon, nota, betaling, timestamp, bestelling) VALUES (?,?,?,?,?,?,?,?,?,?)";
-                $cordovaSQLite.execute(db, query, [levering["orderid"], klant["ordernr"], klant["bedrag"],klant["naam"],klant["adres"],klant["telefoon"],klant["nota"],klant["betaling"], klant["timestamp"], bestelling ]).then(function(res) {
-                  console.log("insertId: " + res.insertId);   // +" "+ String(res.data)
-                }, function (err) {
-                  console.log(err);
-                })
-            },
-            dropTabel: function(){
-               var query = "DROP TABLE leveringen";
-                $cordovaSQLite.execute(db, query).then(function(res) {
-                  console.log(res);   // +" "+ String(res.data)
-                 $cordovaSQLite.execute(db, "CREATE TABLE IF NOT EXISTS leveringen ( orderid integer primary key ,ordernr text, bedrag text, naam text, adres text, telefoon text, nota text, betaling text, timestamp text, bestelling text)");
-                  
 
-                }, function (err) {
-                  console.log(err);
-                })
+//  Controller voor de Telefoonnummers pagina
+applicatie.controller("TelefoonCtrl", function($scope, $localStorage, LokaleOpslag, $state){
 
-            },
-            selectAll: function(){
-              var leveringen = [];
-              var levering = {};
-              var query = "SELECT * FROM leveringen";
-              $cordovaSQLite.execute(db, query).then(function(res) {
+  $scope.Opslaan = function(telefoonnummers) {
+      console.log(telefoonnummers);
+       // $localStorage.test = telefoonnummers;
+       LokaleOpslag.setTelefoonnummers(telefoonnummers);
+        $state.go("instellingen");
+  };
 
-                  for ( i=0; i< res.rows.length; i++){
-                    console.log("SELECTED -> " + res.rows.item(i).ordernr + " " + res.rows.item(i).naam + " " + res.rows.item(i).adres+ " " + res.rows.item(i).betaling+ " " + res.rows.item(i).nota + " " + res.rows.item(i).bestelling);
+  $scope.init = function(){
+     // $scope.telefoonnummers = $localStorage.test;
+     $scope.telefoonnummers = LokaleOpslag.getTelefoonnummers();
+  }
 
-                    levering = {
-                      "orderid" : res.rows.item(i).orderid,
-                      "ordernr" : res.rows.item(i).ordernr,
-                      "naam" : res.rows.item(i).naam,
-                      "adres" : res.rows.item(i).adres
-                    };
-                    leveringen.push(levering);
-                    console.log(levering);
-                  }
-
-                  console.log(leveringen);
-
-              }, function (err) {
-                  console.error(err);
-              });
-
-              return leveringen;
-            },
-
-            getKlantAsync: function(orderID){
-              var deferred = $q.defer();
-              var klant = {};
-              var query = "SELECT  ordernr, bedrag, naam, adres, telefoon, nota, betaling, timestamp FROM leveringen WHERE orderid = ?";
-              $cordovaSQLite.execute(db, query, [orderID]).then(function(res) {
-                  if(res.rows.length > 0) {
-                      console.log("SELECTED -> " + res.rows.item(0).ordernr + " " + res.rows.item(0).naam);
-
-                      klant = {
-                      //"orderid" : res.rows.item(0).orderid,
-                      "ordernr" : res.rows.item(0).ordernr,
-                      "naam" : res.rows.item(0).naam,
-                      "bedrag" : res.rows.item(0).bedrag,
-                      "adres" : res.rows.item(0).adres,
-                      "telefoon" : res.rows.item(0).telefoon,
-                      "betaling" : res.rows.item(0).betaling,
-                      "nota" : res.rows.item(0).nota
-                    };
-
-                    
-                  } else {
-                      // console.log("No results found");
-                      klant = false;  
-                  }
-
-                  deferred.resolve(klant);
-              }, function (err) {
-                  console.error(err);
-                  var error = false;
-                  deferred.reject(error);
-              }); 
-
-              return deferred.promise;
-              
-            },
-
-            getOrderAsync: function(orderID){
-              var deferred = $q.defer();
-              var order = [];
-              var query = "SELECT bestelling FROM leveringen WHERE orderid = ?";
-              $cordovaSQLite.execute(db, query, [orderID]).then(function(res) {
-                  if(res.rows.length > 0) {
-                      console.log("SELECTED -> " + res.rows.item(0).bestelling);
-
-                      order = angular.fromJson(res.rows.item(0).bestelling);
-
-                    deferred.resolve(order);
-                  } else {
-                      console.log("No results found");
-                  }
-              }, function (err) {
-                  console.error(err);
-                  deferred.reject(err);
-              }); 
-
-              return deferred.promise;
-              
-            }
-          }
+  
 });
-
 
 //  Controller voor de LEVERINGEN pagina
 applicatie.controller("LeveringenCtrl", function($scope, DatabaseService){
-    $scope.items = DatabaseService.selectAll();
+      $scope.items = DatabaseService.selectAll();
 });
 
 //  Controller voor de LEVERING pagina
@@ -351,7 +234,7 @@ applicatie.controller("LeveringCtrl", function($scope, LeveringService, $statePa
 
 //  Controller voor de INSTELLINGEN pagina
 applicatie.controller("InstellingenCtrl", function($scope, DatabaseService,$ionicPopup ){
-     $scope.dropTabel = function() {
+  $scope.dropTabel = function() {
 
        var confirmPopup = $ionicPopup.confirm({
           title: 'Waarschuwing',
@@ -368,162 +251,7 @@ applicatie.controller("InstellingenCtrl", function($scope, DatabaseService,$ioni
             }
         });
         
-    }
-});
-
-applicatie.factory('LocatieService', function($q, $cordovaGeolocation){
-  
-  var markers = [];
-  return{
-        getLocatie : function(){
-          var deferred = $q.defer();
-          var options = {timeout: 10000, enableHighAccuracy: true};
- 
-          $cordovaGeolocation.getCurrentPosition(options).then(function(position){
-              deferred.resolve(position);
-
-          }, function(error){
-            deferred.reject(error);
-          });
-          return deferred.promise;
-        },
-
-        getCoor: function(adres){
-          var deferred = $q.defer();
-          var coordinaten = "";
-          var geocoder = new google.maps.Geocoder;
-          geocoder.geocode( { 'address': adres}, function(results, status) {
-            if (status == 'OK') {
-              coordinaten = results[0].geometry.location;
-              console.log(coordinaten);
-              deferred.resolve(coordinaten);
-
-            } else {
-              //alert('Geocode was not successful for the following reason: ' + status);
-              deferred.reject(status);
-            }
-          });
-
-          return deferred.promise;
-        },
-        getAdres: function(){ //mapObject, startCo, bestemmingCo
-          var deferred = $q.defer();
-          var options = {timeout: 10000, enableHighAccuracy: true};
- 
-          $cordovaGeolocation.getCurrentPosition(options).then(function(position){
-              var geocoder = new google.maps.Geocoder;
-              var latlng = {lat: position.coords.latitude, lng: position.coords.longitude};
-              geocoder.geocode({'location': latlng}, function(results, status) {
-                if (status === 'OK') {
-
-                    if (results[1]) {
-                      deferred.resolve(results[1]);
-                       
-                    } else {
-                     deferred.reject(status);
-                    }
-
-                } else {
-                 deferred.reject(status);
-                }
-              });
-
-          }, function(error){
-            alert.log("Uw locatie niet gevonden!");
-          });
-
-          return deferred.promise;
-        },
-
-        setRoute: function(mapObject, startCo,bestemmingCo){
-          var directionsService = new google.maps.DirectionsService();
-          var directionsRequest = {
-            origin: startCo,
-            destination: bestemmingCo,
-            travelMode: google.maps.DirectionsTravelMode.DRIVING, //BICYCLING 
-            unitSystem: google.maps.UnitSystem.METRIC
-          };
-
-          directionsService.route(
-            directionsRequest,
-            function(response, status)
-            {
-              if (status == google.maps.DirectionsStatus.OK)
-              {
-                new google.maps.DirectionsRenderer({
-                  map: mapObject,
-                  directions: response,
-                  suppressMarkers:true
-                });
-              }
-              else
-                alert("Kan geen route vinden");
-            }
-          );
-        },
-
-        setMarkers: function(mapObject, huidigePos,bestemmingCo, keuze){
-
-            var shopIconUrl = "img/logoSmall.png";
-            var positionIconUrl="img/deliveryIcon.png";
-            var destinationIconUrl="img/destinationIcon.png";
-          if (keuze){
-            
-
-            var winkelMarker = new google.maps.Marker({
-                map: mapObject,
-                animation: google.maps.Animation.DROP,
-                position: new google.maps.LatLng(50.930997, 5.328689),
-                icon: shopIconUrl
-            });   
-           
-            var bestemmingMarker = new google.maps.Marker({
-                map: mapObject,
-                animation: google.maps.Animation.DROP,
-                position:  bestemmingCo,
-                icon: destinationIconUrl
-            }); 
-
-             var positieMarker = new google.maps.Marker({
-                map: mapObject,
-                animation: google.maps.Animation.DROP,
-                position: huidigePos,
-                icon: positionIconUrl
-            }); 
-
-             markers.push(winkelMarker);
-             markers.push(bestemmingMarker);
-             markers.push(positieMarker);
-
-          }
-          else{
-
-             var positieMarker = new google.maps.Marker({
-                map: mapObject,
-                animation: google.maps.Animation.DROP,
-                position: huidigePos,
-                icon: positionIconUrl
-            }); 
-
-             markers.push(positieMarker);
-          }
-        },
-
-        deleteMarkers: function(){
-          console.log(markers);
-           for (var i = 0; i < markers.length; i++) {
-              
-              if (i>1){
-                console.log(i + " leeg");
-                markers[i].setMap(null);
-              }
-            }
-        }
-
-
-      
-          
-    } 
+  }
 });
 
 //  Controller voor de Google Maps pagina
@@ -600,15 +328,16 @@ applicatie.controller("MapCtrl", function($scope, $cordovaGeolocation, $statePar
       });
     }
 
-    
- 
+    $scope.$on('$ionicView.afterLeave', function(){
+      watch.clearWatch();
+    });
+
 }); 
 
 //  Controller voor de LEVERING pagina
-applicatie.controller("HulpCtrl", function($scope,  $ionicPopup, $cordovaFlashlight, LocatieService){
+applicatie.controller("HulpCtrl", function($scope,  $ionicPopup, $cordovaFlashlight, LocatieService, LokaleOpslag, $state){
 
     $scope.getLocation = function(){
-
         LocatieService.getAdres().then(function(res){
                
             var alertPopup = $ionicPopup.alert({
@@ -622,8 +351,6 @@ applicatie.controller("HulpCtrl", function($scope,  $ionicPopup, $cordovaFlashli
      
         };
        
-   
-
     $scope.toggleFlashlight = function(){
       $cordovaFlashlight.toggle()
       .then(
@@ -633,6 +360,23 @@ applicatie.controller("HulpCtrl", function($scope,  $ionicPopup, $cordovaFlashli
           }
         );
     };
+
+    if (LokaleOpslag.getTelefoonnummers() !== undefined){
+      $scope.telefoonnummers = LokaleOpslag.getTelefoonnummers();
+    }
+    else{
+      var alertPopup = $ionicPopup.alert({
+         title: 'Fout!',
+         template: 'Geen telefoonnummers in het systeem!',
+         okText: 'Instellingen', 
+       });
+
+       alertPopup.then(function(res) {
+        if (res){
+          $state.go("telefoonnummers");
+        }
+       });
+    }
   
 });
 

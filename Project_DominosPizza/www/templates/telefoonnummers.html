@@ -1,0 +1,38 @@
+<ion-view view-title="Telefoonnummers" class="ja" ng-init="init()" >
+    <ion-content>
+
+        <div class="list card">
+
+          <div class="list">
+            <label class="item item-input item-stacked-label">
+              <span class="input-label">Nood #1</span>
+              <input type="tel" placeholder="101"  ng-model="telefoonnummers.telefoonnood1">
+            </label>
+            <label class="item item-input item-stacked-label">
+              <span class="input-label">Nood #2</span>
+              <input type="tel" placeholder="112"  ng-model="telefoonnummers.telefoonnood2">
+            </label>
+            <label class="item item-input item-stacked-label">
+              <span class="input-label">Manager</span>
+              <input type="tel" placeholder="0486644642" ng-model="telefoonnummers.telefoonmanager">
+            </label>
+            <label class="item item-input item-stacked-label">
+              <span class="input-label">Winkel</span>
+              <input type="tel" placeholder="011753911"   ng-model="telefoonnummers.telefoonwinkel">
+            </label>
+            <label class="item item-input item-stacked-label">
+              <span class="input-label">Franchisée</span>
+              <input type="tel" placeholder="0486644642" ng-model="telefoonnummers.telefoonfranchisee">
+            </label>
+          </div>
+
+          
+        </div>
+        <div id="content">
+            <button ng-click="Opslaan(telefoonnummers)" class="button button-block button-large button-positive">
+                Opslaan
+           </button>
+        </div>
+    </ion-content> 
+
+</ion-view> 
