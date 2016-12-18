@@ -25,7 +25,7 @@ applicatie.config(function($stateProvider, $urlRouterProvider){
       controller :'HulpCtrl'
     })
      .state('levering',{
-      url:'/levering/:orderID', //
+      url:'/levering/:orderID',
       templateUrl:'templates/levering.html',
       controller:'LeveringCtrl'
     })
@@ -46,6 +46,7 @@ applicatie.config(function($stateProvider, $urlRouterProvider){
 
     })
      .state('telefoonnummers',{
+      //cache: false,
       url:'/telefoonnummers',
       templateUrl:'templates/telefoonnummers.html',
       controller:'TelefoonCtrl'
@@ -76,53 +77,147 @@ applicatie.run(function($ionicPlatform, $ionicPopup, $cordovaSQLite) {
     if(window.Connection) {
         console.log("app.run controle");
         db = $cordovaSQLite.openDB({ name: "project.db", location: 'default' });
-            $cordovaSQLite.execute(db, "CREATE TABLE IF NOT EXISTS leveringen ( orderid integer primary key ,ordernr text, bedrag text, naam text, adres text, telefoon text, nota text, betaling text, timestamp text, bestelling text)");
-        
-        
-        
-
-            if(navigator.connection.type == Connection.NONE) {
+        $cordovaSQLite.execute(db, "CREATE TABLE IF NOT EXISTS leveringen ( orderid integer primary key ,ordernr text, bedrag text, naam text, adres text, telefoon text, nota text, betaling text, timestamp text, bestelling text)");
+       
+        if(navigator.connection.type == Connection.NONE) {
               var confirmPopup = $ionicPopup.confirm({
                   title: 'Fout!', // String. The title of the popup.
-                  cssClass: '', // String, The custom CSS class name
-                  subTitle: 'Voor deze applicatie moeten Internet en Locatie aan staan!', // String (optional). The sub-title of the popup.
-                  template: '', // String (optional). The html template to place in the popup body.
-                  templateUrl: '', // String (optional). The URL of an html template to place in the popup   body.
+                  subTitle: 'Voor deze applicatie moet u verbonden zijn met het internet!', // String (optional). The sub-title of the popup.
                   cancelText: 'Afsluiten', // String (default: 'Cancel'). The text of the Cancel button.
                   cancelType: 'button-assertive', // String (default: 'button-default'). The type of the Cancel button.
                   okText: 'Instellingen', // String (default: 'OK'). The text of the OK button.
                   okType: 'button-positive', // String (default: 'button-positive'). The type of the OK button.
-              });
+              });          
 
-             confirmPopup.then(function(res) {
-                 if(res) {
-                   //console.log('You are sure');
-                    cordova.plugins.settings.openSetting("settings", function() {
-                            console.log('opened settings');
-                            ionic.Platform.exitApp();
-                        },
-                        function () {
-                            console.log('failed to open settings');
-                            ionic.Platform.exitApp();
-                        });
-                 } else {
-                   //console.log('You are not sure');
-                   ionic.Platform.exitApp();
-                 }
-             });
-          }
+          confirmPopup.then(function(res) {
+              if(res) {
+                  cordova.plugins.settings.openSetting("settings", function() {
+                        console.log('opened settings');
+                        ionic.Platform.exitApp();
+                  },
+                   function () {
+                        console.log('failed to open settings');
+                        ionic.Platform.exitApp();
+                   });
+              } else {
+                  ionic.Platform.exitApp();
+              }
+          });
+       }
     }
-    
   });
 })
 
-applicatie.controller("HomeCtrl", function($scope, $cordovaSQLite, DatabaseService){
+applicatie.controller("HomeCtrl", function($scope, $state, $q, UserService, $ionicLoading, $ionicPlatform){
+ 
+  $ionicPlatform.registerBackButtonAction(function (condition) {
+    if (condition) {
+      //ionic.Platform.exitApp();
+    }
+  }, 100);
 
+
+  // This is the success callback from the login method
+  var fbLoginSuccess = function(response) {
+    if (!response.authResponse){
+      fbLoginError("Cannot find the authResponse");
+      return;
+    }
+
+    var authResponse = response.authResponse;
+
+    getFacebookProfileInfo(authResponse)
+    .then(function(profileInfo) {
+      // For the purpose of this example I will store user data on local storage
+      UserService.setUser({
+        authResponse: authResponse,
+        userID: profileInfo.id,
+        name: profileInfo.name,
+        email: profileInfo.email,
+        picture : "http://graph.facebook.com/" + authResponse.userID + "/picture?type=large"
+      });
+      $ionicLoading.hide();
+      $state.go('scanner');
+    }, function(fail){
+      // Fail get profile info
+      console.log('profile info fail', fail);
+    });
+  };
+
+  // This is the fail callback from the login method
+  var fbLoginError = function(error){
+    console.log('fbLoginError', error);
+    $ionicLoading.hide();
+  };
+
+  // This method is to get the user profile info from the facebook api
+  var getFacebookProfileInfo = function (authResponse) {
+    var info = $q.defer();
+
+    facebookConnectPlugin.api('/me?fields=email,name&access_token=' + authResponse.accessToken, null,
+      function (response) {
+        console.log(response);
+        info.resolve(response);
+      },
+      function (response) {
+        console.log(response);
+        info.reject(response);
+      }
+    );
+    return info.promise;
+  };
+
+  //This method is executed when the user press the "Login with facebook" button
+  $scope.facebookSignIn = function() {
+    facebookConnectPlugin.getLoginStatus(function(success){
+      if(success.status === 'connected'){
+        // The user is logged in and has authenticated your app, and response.authResponse supplies
+        // the user's ID, a valid access token, a signed request, and the time the access token
+        // and signed request each expire
+        console.log('getLoginStatus', success.status);
+
+        // Check if we have our user saved
+        var user = UserService.getUser('facebook');
+
+        if(!user.userID){
+          getFacebookProfileInfo(success.authResponse)
+          .then(function(profileInfo) {
+            // For the purpose of this example I will store user data on local storage
+            UserService.setUser({
+              authResponse: success.authResponse,
+              userID: profileInfo.id,
+              name: profileInfo.name,
+              email: profileInfo.email,
+              picture : "http://graph.facebook.com/" + success.authResponse.userID + "/picture?type=large"
+            });
+
+            $state.go('scanner');
+          }, function(fail){
+            // Fail get profile info
+            console.log('profile info fail', fail);
+          });
+        }else{
+          $state.go('scanner');
+        }
+      } else {
+
+        console.log('getLoginStatus', success.status);
+
+        $ionicLoading.show({
+          template: 'Inloggen...'
+        });
+
+        // Ask the permissions you need. You can learn more about
+        // FB permissions here: https://developers.facebook.com/docs/facebook-login/permissions/v2.4
+        facebookConnectPlugin.login(['email', 'public_profile'], fbLoginSuccess, fbLoginError);
+      }
+    });
+  };
 });
 
 //  Controller voor de BARCODE pagina
 applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner,$ionicPopup, $ionicLoading, LeveringService, DatabaseService, $state){
-
+    var substring
     $scope.scanBarcode = function() {
         $cordovaBarcodeScanner.scan().then(function(imageData) {
            
@@ -132,7 +227,6 @@ applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner,$io
                 LeveringService.getBestellingAsync(imageData.text).then(function(levering){ 
 
                   DatabaseService.getKlantAsync(levering["orderid"]).then(function(result){ 
-                      console.log(result);
                       if (result == false){
                         MeldingToevoegen(levering);
                       }
@@ -182,31 +276,28 @@ applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner,$io
            });
 
     };
-    
 });
 
 
 //  Controller voor de Telefoonnummers pagina
 applicatie.controller("TelefoonCtrl", function($scope, $localStorage, LokaleOpslag, $state){
 
-  $scope.Opslaan = function(telefoonnummers) {
-      console.log(telefoonnummers);
-       // $localStorage.test = telefoonnummers;
-       LokaleOpslag.setTelefoonnummers(telefoonnummers);
-        $state.go("instellingen");
-  };
-
   $scope.init = function(){
-     // $scope.telefoonnummers = $localStorage.test;
-     $scope.telefoonnummers = LokaleOpslag.getTelefoonnummers();
+      $scope.telefoonnummers = LokaleOpslag.getTelefoonnummers();
   }
 
-  
+  $scope.Opslaan = function(telefoonnummers) {
+      LokaleOpslag.setTelefoonnummers(telefoonnummers);
+      $state.go("instellingen");
+  };
 });
 
 //  Controller voor de LEVERINGEN pagina
 applicatie.controller("LeveringenCtrl", function($scope, DatabaseService){
-      $scope.items = DatabaseService.selectAll();
+    $scope.itemVandaag = DatabaseService.selectDag(0);
+    $scope.itemGisteren = DatabaseService.selectDag(1);
+    $scope.itemAlle = DatabaseService.selectDag(2);
+          
 });
 
 //  Controller voor de LEVERING pagina
@@ -214,26 +305,24 @@ applicatie.controller("LeveringCtrl", function($scope, LeveringService, $statePa
     var orderID = $stateParams.orderID;  
     
     DatabaseService.getKlantAsync(orderID).then(function(res){
-                 
-      $scope.klant = res;
+        $scope.klant = res;
     })
     .catch(function(response){
         console.log(response.status);
-     });  
+    });  
 
     
     DatabaseService.getOrderAsync(orderID).then(function(res){
-                 
-      $scope.items = res;
+        $scope.items = res;
     })
     .catch(function(response){
         console.log(response.status);
-     });               
+    });               
                   
 });
 
 //  Controller voor de INSTELLINGEN pagina
-applicatie.controller("InstellingenCtrl", function($scope, DatabaseService,$ionicPopup ){
+applicatie.controller("InstellingenCtrl", function($scope, DatabaseService,$ionicPopup, UserService , UserService, $ionicActionSheet, $state, $ionicLoading){
   $scope.dropTabel = function() {
 
        var confirmPopup = $ionicPopup.confirm({
@@ -251,16 +340,49 @@ applicatie.controller("InstellingenCtrl", function($scope, DatabaseService,$ioni
             }
         });
         
-  }
+  };
+  $scope.user = UserService.getUser();
+  console.log(UserService.getUser());
+
+  $scope.showLogOutMenu = function() {
+
+   var confirmPopup = $ionicPopup.confirm({
+     title: 'Uitloggen',
+     template: 'Bent u zeker dat u wilt uitloggen?',
+      cancelText: 'Annuleer',
+                  cancelType: 'button-assertive', 
+                   okText: 'Uitloggen',
+                  okType: 'button-positive',
+   });
+
+   confirmPopup.then(function(res) {
+     if(res) {
+       $ionicLoading.show({
+          template: 'Uitloggen...'
+        });
+
+        facebookConnectPlugin.logout(function(){
+          $ionicLoading.hide();
+          $state.go('home');
+        },
+        function(fail){
+          $ionicLoading.hide();
+        });
+     } 
+   });
+ 
+  };
 });
 
 //  Controller voor de Google Maps pagina
 applicatie.controller("MapCtrl", function($scope, $cordovaGeolocation, $stateParams, LocatieService, $ionicPopup){
-   
-    var mapObject="";  
-    var locatie="";
-    var bestemmingCoordinaten = "";
-    var watchLocatie ="";
+    var bestemmingsAdres = $stateParams.adres;
+    var mapObject;  
+    var locatie;
+    var bestemmingCoordinaten;
+    var watchLocatie;
+    var watch;
+    var keuze = true;
 
     //  Async methode om de locatie op te halen
     LocatieService.getLocatie().then(function(position){
@@ -276,60 +398,61 @@ applicatie.controller("MapCtrl", function($scope, $cordovaGeolocation, $statePar
         mapObject = new google.maps.Map(document.getElementById("map"), mapOptions);
         $scope.map = mapObject;
 
-
-        var bestemmingsAdres = $stateParams.adres;
         //  Async methode om het bestemmingsadres om te zetten naar coordinater mbv geocode
         LocatieService.getCoor(bestemmingsAdres).then(function(bestemmingCo){
+           
             bestemmingCoordinaten = bestemmingCo;
+
             //als de coordinaten van het bestemmingsadres binnen zijn, wordt de route op de kaart gezet
             LocatieService.setRoute(mapObject, locatie,bestemmingCo);
 
             //Markers op de kaart tonen (Winkel, HuidigeLocatie, Klant)
-            LocatieService.setMarkers(mapObject, locatie,bestemmingCo, true);
-
+            LocatieService.setMarkers(mapObject, locatie,bestemmingCo, keuze);
+            keuze = false;
             startWatchPosition();
 
         })
         .catch(function(response){
            var alertPopup = $ionicPopup.alert({
-                 title: 'Kan locatie van bestemming niet vinden',
-                 template: response
+                 title: 'Kan locatie van bestemming niet vinden'
+                 //template: response
             });
         }); 
     })
     .catch(function(response){
        var alertPopup = $ionicPopup.alert({
-             title: 'Locatie niet gevonden',
-             template: response
+             title: 'Locatie niet gevonden'
+             //template: response
         });
     }); 
 
     function startWatchPosition(){
 
       var watchOptions = {
-        timeout : 20000,
+        timeout : 10000,
         enableHighAccuracy: false // may cause errors if true
       };
 
-      var watch = $cordovaGeolocation.watchPosition(watchOptions);
+      watch = $cordovaGeolocation.watchPosition(watchOptions);
       watch.then(
         null,
-        function(err) {
+        function(error) {
           console.log(error)
         },
         function(position) {
-            console.log("change: " + position);
             LocatieService.deleteMarkers();
 
              watchLocatie = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
 
             // Markers op de kaart tonen (Winkel, HuidigeLocatie, Klant)
-            LocatieService.setMarkers(mapObject, watchLocatie,bestemmingCoordinaten, false);
+            LocatieService.setMarkers(mapObject, watchLocatie,bestemmingCoordinaten, keuze);
       });
     }
 
     $scope.$on('$ionicView.afterLeave', function(){
       watch.clearWatch();
+      keuze = true;
+      LocatieService.deleteAllMarkers();
     });
 
 }); 
@@ -337,6 +460,21 @@ applicatie.controller("MapCtrl", function($scope, $cordovaGeolocation, $statePar
 //  Controller voor de LEVERING pagina
 applicatie.controller("HulpCtrl", function($scope,  $ionicPopup, $cordovaFlashlight, LocatieService, LokaleOpslag, $state){
 
+    if (LokaleOpslag.getTelefoonnummers() !== undefined){
+      $scope.telefoonnummers = LokaleOpslag.getTelefoonnummers();
+    }
+    else{
+      var alertPopup = $ionicPopup.alert({
+         title: 'Geen telefoonnummers in het systeem!',
+         template: 'Ga naar de instellingen pagina om telefoonnummers toe te voegen.',
+         okText: 'OK', 
+       });
+
+       alertPopup.then(function(res) {
+        
+       });
+    }
+  
     $scope.getLocation = function(){
         LocatieService.getAdres().then(function(res){
                
@@ -346,8 +484,11 @@ applicatie.controller("HulpCtrl", function($scope,  $ionicPopup, $cordovaFlashli
             });
         })
         .catch(function(response){
-            console.log(response.status);
-         });  
+           var alertPopup = $ionicPopup.alert({
+                 title: 'Kan uw locatie niet vinden!'
+                 //template: response
+            });
+        }); 
      
         };
        
@@ -361,23 +502,7 @@ applicatie.controller("HulpCtrl", function($scope,  $ionicPopup, $cordovaFlashli
         );
     };
 
-    if (LokaleOpslag.getTelefoonnummers() !== undefined){
-      $scope.telefoonnummers = LokaleOpslag.getTelefoonnummers();
-    }
-    else{
-      var alertPopup = $ionicPopup.alert({
-         title: 'Fout!',
-         template: 'Geen telefoonnummers in het systeem!',
-         okText: 'Instellingen', 
-       });
-
-       alertPopup.then(function(res) {
-        if (res){
-          $state.go("telefoonnummers");
-        }
-       });
-    }
-  
+    
 });
 
 

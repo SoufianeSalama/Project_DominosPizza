@@ -1,4 +1,4 @@
-<ion-view class="ja" ><!-- view-title="Levering nr. {{klant["ordernr"]}}" -->
+<ion-view class="custom" ><!-- view-title="Levering nr. {{klant["ordernr"]}}" -->
  <ion-nav-title>Levering nr. {{klant["ordernr"]}}</ion-nav-title>
     <ion-content>
         <ion-list>
@@ -25,7 +25,7 @@
                 {{klant["adres"]}} 
               </a>
 
-              <a class="item item-icon-left">
+              <a ng-href="tel:{{klant['telefoon']}} " class="item item-icon-left">
                 <i class="icon ion-iphone"></i>
                 {{klant["telefoon"]}} 
               </a>

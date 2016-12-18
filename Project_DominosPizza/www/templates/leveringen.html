@@ -1,21 +1,86 @@
-<ion-view view-title="Leveringen" class="ja">
+<ion-view view-title="Leveringen" class="custom">
     <ion-content>
 
-         	<!-- Card Header  -->
-            <div class="list card">
+        <ion-slides  options="options" slider="data.slider">
+            <ion-slide-page>
+            <ion-scroll zooming="true" direction="y" style="height: 530px">
+              <div class="box blue">
+                <div class="list card">
+                    <div class="item item-divider">
+                      Leveringen die u vandaag heeft bezorgd:
+                    </div>
+                    <!-- Card list items  -->
+                    <div ng-repeat="itemVndg in itemVandaag" class="item item-button-right">
+                        <h2>Levering nr. {{itemVndg.ordernr}}</h2>
+                        <p>Klant naam: {{itemVndg.naam}}</p>
+                        <p>Adres: {{itemVndg.adres}}</p>
+                        <a class="button " ng-href="#/levering/{{item.orderid}}">
+                          <i class="icon ion-more"></i>
+                        </a>
+                    </div>
+                </div>
+              </div>
+            </ion-scroll>
+            </ion-slide-page>
+
+            <ion-slide-page>
+            <ion-scroll zooming="true" direction="y" style="height: 530px">
+              <div class="box yellow">
+                <div class="list card">
                 <div class="item item-divider">
-                  Leveringen die u heeft bezorgd:
+                  Leveringen die u gisteren heeft bezorgd:
                 </div>
                 <!-- Card list items  -->
-                <div ng-repeat="item in items" class="item item-button-right">
-                	<h2>Levering nr. {{item.ordernr}}</h2>
-                	<p>Klant naam: {{item.naam}}</p>
-                	<p>Adres: {{item.adres}}</p>
+                <div ng-repeat="itemGstrn in itemGisteren" class="item item-button-right">
+                    <h2>Levering nr. {{itemGstrn.ordernr}}</h2>
+                    <p>Klant naam: {{itemGstrn.naam}}</p>
+                    <p>Adres: {{itemGstrn.adres}}</p>
                     <a class="button " ng-href="#/levering/{{item.orderid}}">
-				      <i class="icon ion-more"></i>
-				    </a>
+                      <i class="icon ion-more"></i>
+                    </a>
                 </div>
             </div>
+              </div>
+              </ion-scroll>
+            </ion-slide-page>
+
+            <ion-slide-page>
+            <ion-scroll zooming="true" direction="y" style="height: 530px">
+              <div class="box yellow">
+                <div class="list card">
+                <div class="item item-divider">
+                  Alle leveringen die u heeft bezorgd:
+                </div>
+                <!-- Card list items  -->
+                <div ng-repeat="itemAl in itemAlle" class="item item-button-right">
+                    <h2>Levering nr. {{itemAl.ordernr}}</h2>
+                    <p>Klant naam: {{itemAl.naam}}</p>
+                    <p>Adres: {{itemAl.adres}}</p>
+                    <a class="button " ng-href="#/levering/{{item.orderid}}">
+                      <i class="icon ion-more"></i>
+                    </a>
+                </div>
+            </div>
+              </div>
+              </ion-scroll>
+            </ion-slide-page>
+          </ion-slides>
+
+            <!-- Card Header 
+            <div class="list card">
+                <div class="item item-divider">
+                  Leveringen die u vandaag heeft bezorgd:
+                </div>
+                <!-- Card list items 
+                <div ng-repeat="item in items" class="item item-button-right">
+                    <h2>Levering nr. {{item.ordernr}}</h2>
+                    <p>Klant naam: {{item.naam}}</p>
+                    <p>Adres: {{item.adres}}</p>
+                    <a class="button " ng-href="#/levering/{{item.orderid}}">
+                      <i class="icon ion-more"></i>
+                    </a>
+                </div>
+            </div> -->
 
     </ion-content>
 

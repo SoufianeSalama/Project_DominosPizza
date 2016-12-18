@@ -1,21 +1,18 @@
-<ion-view view-title="Instellingen" class="ja" >
-    <ion-content>
+<ion-view view-title="Instellingen" class="custom" >
+    <ion-content scroll="false"> 
 
         <div class="list card">
 
           <div class="item item-avatar">
-            <img src="img/hoofd.jpg">
-            <h2>Soufiane Salama</h2>
+            <img src="{{user.picture}}">
+            <h2>{{user.name}}</h2>
+            <h4>{{user.email}}</h4>
           </div>
           
- <a class="item item-icon-left assertive" href="#" style="color:#3b5998;">
-    <i class="icon ion-social-facebook"></i>
-    Uitloggen
-  </a>
-          <!-- <button class="button button-block button-positive icon-left ion-social-facebook" style="color:#3b5998; padding:5px;">
-             Uitloggen
-          </button> -->
-
+       <a class="item item-icon-left assertive" ng-click="showLogOutMenu()" style="color:#3b5998;">
+          <i class="icon ion-social-facebook"></i>
+          Uitloggen
+        </a>
           
         </div>
 
@@ -31,4 +28,4 @@
         </div>
     </ion-content> 
 
-</ion-view> 
+</ion-view>

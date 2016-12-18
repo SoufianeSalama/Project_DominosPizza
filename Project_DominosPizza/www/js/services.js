@@ -64,10 +64,46 @@ services.factory('DatabaseService', function($cordovaSQLite, $q){
                 })
 
             },
-            selectAll: function(){
+            selectDag: function(index){
+
+              var date = new Date();
+              var dag1;
+              var dag2;
+              var timestamp1 = 0;
+              var timestamp2 = 0;
+
+
+              if (index == 0){
+                // alle leveringen van vandaag
+                dag1 = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                dag2 = new Date(date.getFullYear(), date.getMonth(), date.getDate()+1);
+                timestamp1 = dag1 / 1000; 
+                timestamp2 = dag2 / 1000; 
+                var query = "SELECT * FROM leveringen WHERE timestamp BETWEEN " +timestamp1+ " AND " +timestamp2 +  " ORDER BY timestamp DESC";
+
+
+              }
+              else if (index == 1){
+                // alle leveringen van gisteren
+                dag1 = new Date(date.getFullYear(), date.getMonth(), date.getDate()-1);
+                dag2 = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                timestamp1 = dag1 / 1000; 
+                timestamp2 = dag2 / 1000; 
+                var query = "SELECT * FROM leveringen WHERE timestamp BETWEEN " +timestamp1+ " AND " +timestamp2 +  " ORDER BY timestamp DESC";
+
+
+              }
+              else{
+                // alle leveringen
+                var query = "SELECT * FROM leveringen ORDER BY timestamp DESC";
+
+              }
+
               var leveringen = [];
               var levering = {};
-              var query = "SELECT * FROM leveringen ORDER BY timestamp DESC";
+              console.log(query);
+              //var query = "SELECT * FROM leveringen WHERE timestamp BETWEEN " +timestampVandaag+ " AND " +timestampMorgen +  " ORDER BY timestamp DESC";
+              //var query = "SELECT * FROM leveringen WHERE timestamp BETWEEN 1482015600 AND 1482102000 ORDER BY timestamp DESC";
               $cordovaSQLite.execute(db, query).then(function(res) {
 
                   for ( i=0; i< res.rows.length; i++){
@@ -211,7 +247,7 @@ services.factory('LocatieService', function($q, $cordovaGeolocation){
               });
 
           }, function(error){
-            alert.log("Uw locatie niet gevonden!");
+            deferred.reject(error);
           });
 
           return deferred.promise;
@@ -292,10 +328,31 @@ services.factory('LocatieService', function($q, $cordovaGeolocation){
           console.log(markers);
            for (var i = 0; i < markers.length; i++) {
               if (i>1){
-                console.log(i + " leeg");
                 markers[i].setMap(null);
               }
             }
+        },
+
+         deleteAllMarkers: function(){
+          markers = [];
+          console.log(markers);
+          
         }
     } 
+});
+
+services.service('UserService', function() {
+  // For the purpose of this example I will store user data on ionic local storage but you should save it on a database
+  var setUser = function(user_data) {
+    window.localStorage.starter_facebook_user = JSON.stringify(user_data);
+  };
+
+  var getUser = function(){
+    return JSON.parse(window.localStorage.starter_facebook_user || '{}');
+  };
+
+  return {
+    getUser: getUser,
+    setUser: setUser
+  };
 });
