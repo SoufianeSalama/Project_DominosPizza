@@ -1,8 +1,5 @@
-// Ionic Starter App
-
-// angular.module is a global place for creating, registering and retrieving Angular modules
-// 'starter' is the name of this angular module example (also set in a <body> attribute in index.html)
-// the 2nd parameter is an array of 'requires'
+// Ionic Domino's Pizza App
+// deze app.js maakt gebruik van de gemaakte services "services.js"
 var applicatie = angular.module('starter', ['ionic', 'ngCordova', 'Services', 'ngStorage']);
 var db = null;
 
@@ -46,7 +43,6 @@ applicatie.config(function($stateProvider, $urlRouterProvider){
 
     })
      .state('telefoonnummers',{
-      //cache: false,
       url:'/telefoonnummers',
       templateUrl:'templates/telefoonnummers.html',
       controller:'TelefoonCtrl'
@@ -56,26 +52,24 @@ applicatie.config(function($stateProvider, $urlRouterProvider){
 });
 
 applicatie.run(function($ionicPlatform, $ionicPopup, $cordovaSQLite) {
-  
+  // Bij het opstarten van de applicatie wordt de database geopend en gecontroleerd of er een tabel "leveringen" bestaat
+  // zoniet maakt hij een tabel aal
+  // Ook wordt er bij het opstarten gecontroleerd op verbinding met het internet
+  // zoniet wordt er en popup getoond met een knop instelligen die de gebruiker naar de instellingen pagina van het toestel brengt
 
   $ionicPlatform.ready(function() {
     if(window.cordova && window.cordova.plugins.Keyboard) {
-      // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
-      // for form inputs)
+
       cordova.plugins.Keyboard.hideKeyboardAccessoryBar(true);
 
-      // Don't remove this line unless you know what you are doing. It stops the viewport
-      // from snapping when text inputs are focused. Ionic handles this internally for
-      // a much nicer keyboard experience.
       cordova.plugins.Keyboard.disableScroll(true);
     }
     if(window.StatusBar) {
       StatusBar.styleDefault();
     }
 
-
     if(window.Connection) {
-        console.log("app.run controle");
+        
         db = $cordovaSQLite.openDB({ name: "project.db", location: 'default' });
         $cordovaSQLite.execute(db, "CREATE TABLE IF NOT EXISTS leveringen ( orderid integer primary key ,ordernr text, bedrag text, naam text, adres text, telefoon text, nota text, betaling text, timestamp text, bestelling text)");
        
@@ -109,10 +103,9 @@ applicatie.run(function($ionicPlatform, $ionicPopup, $cordovaSQLite) {
 })
 
 applicatie.controller("HomeCtrl", function($scope, $state, $q, UserService, $ionicLoading, $ionicPlatform){
- 
+ // Met de volgende regels zorg ik ervoor dat de hardware back button bij android niks doet bij indrukken
   $ionicPlatform.registerBackButtonAction(function (condition) {
     if (condition) {
-      //ionic.Platform.exitApp();
     }
   }, 100);
 
@@ -128,7 +121,6 @@ applicatie.controller("HomeCtrl", function($scope, $state, $q, UserService, $ion
 
     getFacebookProfileInfo(authResponse)
     .then(function(profileInfo) {
-      // For the purpose of this example I will store user data on local storage
       UserService.setUser({
         authResponse: authResponse,
         userID: profileInfo.id,
@@ -167,15 +159,14 @@ applicatie.controller("HomeCtrl", function($scope, $state, $q, UserService, $ion
     return info.promise;
   };
 
-  //This method is executed when the user press the "Login with facebook" button
+  //Deze functie wordt gestart als de gebruiker op de knop Inloggen klikt
+  // met behulp van de FacebookNative krijg ge de gegevens van de gebruiker als hij ingelogd is met de Facebook App op het toestel
+  // Als hij geconnecteerd is, dan worden de faccecbookgegevens van de gebruiker in de local storage(userid, naam, email en link van de profielfoto naar de facebookservers)
+
   $scope.facebookSignIn = function() {
     facebookConnectPlugin.getLoginStatus(function(success){
       if(success.status === 'connected'){
-        // The user is logged in and has authenticated your app, and response.authResponse supplies
-        // the user's ID, a valid access token, a signed request, and the time the access token
-        // and signed request each expire
-        console.log('getLoginStatus', success.status);
-
+      
         // Check if we have our user saved
         var user = UserService.getUser('facebook');
 
@@ -217,13 +208,20 @@ applicatie.controller("HomeCtrl", function($scope, $state, $q, UserService, $ion
 
 //  Controller voor de BARCODE pagina
 applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner,$ionicPopup, $ionicLoading, LeveringService, DatabaseService, $state){
-    var substring
+  // Functie scanBarcode wordt gestart zodra de gebruiker op de barcode foto klikt.
+  // Deze functie maakt gebruik van de native BarcodeScanner en de services LeveringService en DatabaseService
+  // De DatabaseServive maakt gebruik van de native SQLite
+  // Als de scanner de barcode heeft gescand controleert hij eerst of het van type QR_CODE is
+  // Zoja wordt bestelling asynchroon van de server afgehaald met de functie getBestellingAsync, deze functie krijgt de url naar de server die in de barcode zit mee
+  // Dan wordt met de getKlantAsync van DatabaseService gecontroleerd of deze bestelling al in de lokale database zit, deze krijgt het id van de bestelling is mee, 
+  // Zoniet returnd de functie false, en wordt er een popup getoond met het ordernr en met de vraag of deze bestelling in het systeem moet worden gezet
+  // Als de levering al in de lokale database zit wordt er een popup getoond dat hij er al in zit
     $scope.scanBarcode = function() {
         $cordovaBarcodeScanner.scan().then(function(imageData) {
            
             if (!imageData.cancelled && imageData.format=="QR_CODE" ){
                 
-                console.log(imageData);
+                
                 LeveringService.getBestellingAsync(imageData.text).then(function(levering){ 
 
                   DatabaseService.getKlantAsync(levering["orderid"]).then(function(result){ 
@@ -281,11 +279,16 @@ applicatie.controller("BarcodeCtrl", function($scope, $cordovaBarcodeScanner,$io
 
 //  Controller voor de Telefoonnummers pagina
 applicatie.controller("TelefoonCtrl", function($scope, $localStorage, LokaleOpslag, $state){
-
+  // Functie init wordt gestart zodra de gebruiker op de telefoonnummers pagina van Instellingen komt.
+  // Deze functie maakt gebruik van de native Local Storage(deze is een extra javascript lib zie index.html) en de services LokaleOpslag
+  // Deze gaat de input velden vullen (als ze er zijn) met de telefoonnummers die in de localstorage zitten opgeslagen onder de key nummers
   $scope.init = function(){
       $scope.telefoonnummers = LokaleOpslag.getTelefoonnummers();
   }
 
+  // Functie Opslaan wordt gestart zodra de gebruiker op de knop opslaan in de telefoonnummers pagina van Instellingen klikt.
+  // Deze functie maakt gebruik van de native Local Storage(deze is een extra javascript lib zie index.html) en de services LokaleOpslag
+  // Deze functie gaat de waarde van de input velden in de localstorage opslaan onder de key nummers
   $scope.Opslaan = function(telefoonnummers) {
       LokaleOpslag.setTelefoonnummers(telefoonnummers);
       $state.go("instellingen");
@@ -294,6 +297,9 @@ applicatie.controller("TelefoonCtrl", function($scope, $localStorage, LokaleOpsl
 
 //  Controller voor de LEVERINGEN pagina
 applicatie.controller("LeveringenCtrl", function($scope, DatabaseService){
+  // Deze controller gaat met behulp van de DatabaseServive alle leveringen van vandaag(index=0), gisteren(index=1) en alle leveringen(index=2) ophalen en in de view tonen.
+  // De DatabaseServive maakt gebruik van de native SQLite
+  // Deze functie gaat de waarde van de input velden in de localstorage opslaan onder de key nummers
     $scope.itemVandaag = DatabaseService.selectDag(0);
     $scope.itemGisteren = DatabaseService.selectDag(1);
     $scope.itemAlle = DatabaseService.selectDag(2);
@@ -302,6 +308,12 @@ applicatie.controller("LeveringenCtrl", function($scope, DatabaseService){
 
 //  Controller voor de LEVERING pagina
 applicatie.controller("LeveringCtrl", function($scope, LeveringService, $stateParams, DatabaseService ,$q){
+  // Deze controller gaat met behulp van de waarde(het orderID van de bestelling) die mee wordt gestuurd in de url 
+  // de functie getKlantAsync van de DatabaseService starten en deze gaat alle Klantgegevens(ordernr,naam,adres,bedrag,telefoonnummer) van de bestelling die in de lokale database returnen.
+  // de functie getOrderAsync van de DatabaseService starten en deze gaat alle bestelde item(pizza's, side's, drank,...) van de bestelling die in de lokale database returnen.
+  
+  // De DatabaseServive maakt gebruik van de native SQLite
+  // Deze functie gaat de waarde van de input velden in de localstorage opslaan onder de key nummers
     var orderID = $stateParams.orderID;  
     
     DatabaseService.getKlantAsync(orderID).then(function(res){
@@ -323,6 +335,10 @@ applicatie.controller("LeveringCtrl", function($scope, LeveringService, $statePa
 
 //  Controller voor de INSTELLINGEN pagina
 applicatie.controller("InstellingenCtrl", function($scope, DatabaseService,$ionicPopup, UserService , UserService, $ionicActionSheet, $state, $ionicLoading){
+  // Functie dropTabel wordt gestart zodra de gebruiker op de knop Verwijder Leveringen op de Instellingen pagina klikt.
+  // Deze functie maakt gebruik van de DatabaseService en gaat de tabel leveringen verwijderen.
+  // De DatabaseServive maakt gebruik van de native SQLite
+  // Eerst wordt er een waarschuwing getoond
   $scope.dropTabel = function() {
 
        var confirmPopup = $ionicPopup.confirm({
@@ -341,9 +357,15 @@ applicatie.controller("InstellingenCtrl", function($scope, DatabaseService,$ioni
         });
         
   };
-  $scope.user = UserService.getUser();
-  console.log(UserService.getUser());
 
+  // Met de volgende regel kan ik de facebookgegevens van de ingelogde gebruiker tonen op de instellingen pagina zoals naam, email en link naar de profielfoto op de facebookservers
+    $scope.user = UserService.getUser();
+
+
+  // Functie showLogOutMenu wordt gestart zodra de gebruiker op de knop Uitloggen op de Instellingen pagina klikt.
+  // Deze functie maakt gebruik van de facebook plugin en gaat de ingelogde gebruiker uitloggen
+  // De DatabaseServive maakt gebruik van de native SQLite
+  // Eerst wordt er een popup getoond
   $scope.showLogOutMenu = function() {
 
    var confirmPopup = $ionicPopup.confirm({
@@ -376,6 +398,8 @@ applicatie.controller("InstellingenCtrl", function($scope, DatabaseService,$ioni
 
 //  Controller voor de Google Maps pagina
 applicatie.controller("MapCtrl", function($scope, $cordovaGeolocation, $stateParams, LocatieService, $ionicPopup){
+     // Deze controller gaat met behulp van de waarde(het adres van de bestelling) die mee wordt gestuurd in de url 
+     // een route op de kaart tonen
     var bestemmingsAdres = $stateParams.adres;
     var mapObject;  
     var locatie;
@@ -384,7 +408,7 @@ applicatie.controller("MapCtrl", function($scope, $cordovaGeolocation, $statePar
     var watch;
     var keuze = true;
 
-    //  Async methode om de locatie op te halen
+    //  Async methode om de huidige locatie op te halen
     LocatieService.getLocatie().then(function(position){
         //Map tonen
         locatie = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
@@ -398,7 +422,7 @@ applicatie.controller("MapCtrl", function($scope, $cordovaGeolocation, $statePar
         mapObject = new google.maps.Map(document.getElementById("map"), mapOptions);
         $scope.map = mapObject;
 
-        //  Async methode om het bestemmingsadres om te zetten naar coordinater mbv geocode
+        //  Async methode om het bestemmingsadres om te zetten naar coordinaten mbv Google Geocode
         LocatieService.getCoor(bestemmingsAdres).then(function(bestemmingCo){
            
             bestemmingCoordinaten = bestemmingCo;
@@ -406,7 +430,9 @@ applicatie.controller("MapCtrl", function($scope, $cordovaGeolocation, $statePar
             //als de coordinaten van het bestemmingsadres binnen zijn, wordt de route op de kaart gezet
             LocatieService.setRoute(mapObject, locatie,bestemmingCo);
 
-            //Markers op de kaart tonen (Winkel, HuidigeLocatie, Klant)
+            // Markers op de kaart tonen (Winkel, HuidigeLocatie, Klant)
+            // In de volgende regel is de 4de parameter(keuze) true, dit zorgt ervoor dat alle markers getoond moeten worden(Winkel, HuidigeLocatie en de Klant)
+            // Dit mag alleen de eerste keer, want zodra er een watchpostion wordt afgevuurd mag alleen de marker van de huidige locatie veranderen van positie 
             LocatieService.setMarkers(mapObject, locatie,bestemmingCo, keuze);
             keuze = false;
             startWatchPosition();
@@ -443,12 +469,14 @@ applicatie.controller("MapCtrl", function($scope, $cordovaGeolocation, $statePar
             LocatieService.deleteMarkers();
 
              watchLocatie = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-
+             mapObject.setCenter(new google.maps.LatLng(position.coords.latitude, position.coords.longitude));
             // Markers op de kaart tonen (Winkel, HuidigeLocatie, Klant)
+            // In de volgende regel is de 4de parameter(keuze) false, dit zorgt ervoor dat alleen marker HuidigeLocatie van positie veranderd
             LocatieService.setMarkers(mapObject, watchLocatie,bestemmingCoordinaten, keuze);
       });
     }
 
+    // als we deze pagina verlaten wordt de watchposition afgesloten en alle markers verwijderd mbv de LocatieService
     $scope.$on('$ionicView.afterLeave', function(){
       watch.clearWatch();
       keuze = true;
@@ -459,7 +487,10 @@ applicatie.controller("MapCtrl", function($scope, $cordovaGeolocation, $statePar
 
 //  Controller voor de LEVERING pagina
 applicatie.controller("HulpCtrl", function($scope,  $ionicPopup, $cordovaFlashlight, LocatieService, LokaleOpslag, $state){
-
+  // De volgende regels controleren met behulp van de service LokaleOpslag of er telefoonnummers in de local storage zitten onder de key nummers
+  // Als er telefoonnummers beschikbaar zijn worden deze in de <a> tag achter de ng-href="tel: gezet zoals -> ng-href="tel:{{telefoonnummers['telefoonmanager']}}
+  // Met dit kan er na het klikken op het nummer gebeld worden.
+  // Zoniet wordt er waarschuwing getoond
     if (LokaleOpslag.getTelefoonnummers() !== undefined){
       $scope.telefoonnummers = LokaleOpslag.getTelefoonnummers();
     }
@@ -475,6 +506,8 @@ applicatie.controller("HulpCtrl", function($scope,  $ionicPopup, $cordovaFlashli
        });
     }
   
+  // De functie getLocation wordt gestart als de gebruiker op de knop "waar ben ik?" in de footer klikt
+  // Deze gaat mbv de LocatieService en het Google (reverse)Geocoder de huidige coordinaten opzetten naar een adres en tonen in een popup
     $scope.getLocation = function(){
         LocatieService.getAdres().then(function(res){
                
@@ -492,6 +525,8 @@ applicatie.controller("HulpCtrl", function($scope,  $ionicPopup, $cordovaFlashli
      
         };
        
+  // De functie toggleFlashlight wordt gestart als de gebruiker op de knop Zaklamp in de footer klikt, Hiermee wordt de zaklamp van het toestel aangezet
+  // Deze functie maakt gebruik van de native FlashLight
     $scope.toggleFlashlight = function(){
       $cordovaFlashlight.toggle()
       .then(
